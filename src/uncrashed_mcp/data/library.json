@@ -1,0 +1,299 @@
+{
+  "source": "DT_MapEditorAssets, DT_LevelName and DT_MapEditorGates from Uncrashed (UE 4.27), plus mesh bounds.",
+  "units": "Map JSON translations are centimetres. This MCP takes metres. Yaw degrees, 0 faces +X, 90 faces +Y.",
+  "grounds": {
+    "asphalt": "NewRow_182",
+    "pavement": "NewRow_185",
+    "pavement2": "NewRow_197",
+    "pavement3": "NewRow_186",
+    "flagstone": "NewRow_376",
+    "dirt": "NewRow_180",
+    "gravel": "NewRow_181",
+    "sand": "NewRow_662",
+    "wood": "NewRow_184"
+  },
+  "layers_m": {
+    "dirt": 0.05,
+    "gravel": 0.07,
+    "sand": 0.07,
+    "asphalt": 0.1,
+    "pavement": 0.14,
+    "pavement2": 0.14,
+    "pavement3": 0.14,
+    "flagstone": 0.16,
+    "wood": 0.18,
+    "plaza": 0.2,
+    "sidewalk": 0.22
+  },
+  "bases": [
+    {
+      "id": "MountainOpen",
+      "name": "Mountain open",
+      "level": "MountainOpen",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Desert",
+      "name": "Desert",
+      "level": "Desert",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Hangar",
+      "name": "Mountain - Hangar",
+      "level": "Hangar",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Longrange1",
+      "name": "Grassland",
+      "level": "Longrange1",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "HighCity",
+      "name": "High City",
+      "level": "HighCity",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "UrbanBando",
+      "name": "Urban Bando",
+      "level": "UrbanBando_MacOs",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "BandoParc",
+      "name": "Forest - Bando",
+      "level": "BandoParc",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "GrassLandWithCar",
+      "name": "Roadtrip",
+      "level": "GrassLandWithCar",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "CityPark",
+      "name": "City Park",
+      "level": "CityPark",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Island_fjord",
+      "name": "Arctic Island",
+      "level": "Island_fjord",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "SouthBando",
+      "name": "Riviera Unit",
+      "level": "SouthBando",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "TheDock",
+      "name": "The Dock",
+      "level": "TheDock",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Sanatorium",
+      "name": "Sanatorium",
+      "level": "Sanatorium",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Racetrack",
+      "name": "Racetrack",
+      "level": "Racetrack",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "ClipStone",
+      "name": "FPV drone fest",
+      "level": "ClipStone",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Stadium",
+      "name": "Stadium",
+      "level": "Stadium_MonsterTruck",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Stadium_MX",
+      "name": "Stadium FMX",
+      "level": "Stadium_MX",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "NeoCity1",
+      "name": "Horizon",
+      "level": "NeoCity1",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "NitroCross",
+      "name": "Rallycross",
+      "level": "NitroCross",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Meadow",
+      "name": "Meadow",
+      "level": "LongRange_island",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "Stadium_Empty",
+      "name": "Stadium",
+      "level": "Stadium_Empty",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "BaseBoard",
+      "name": "Empty board",
+      "level": "L_BaseBoard",
+      "flat": true,
+      "note": "Flat numbered grid at z=0. Safe default for generated cities."
+    },
+    {
+      "id": "BaseLandscape",
+      "name": "Desert landscape",
+      "level": "L_BaseLandscape01",
+      "flat": false,
+      "note": "Desert terrain. Height is not sampled; objects at z=0 may float or clip."
+    },
+    {
+      "id": "BaseLandscape02",
+      "name": "Grassy landscape",
+      "level": "L_BaseLandscape02",
+      "flat": false,
+      "note": "Grassy terrain, roughly flat but not a plane. Height is not sampled."
+    },
+    {
+      "id": "BaseLandscape03",
+      "name": "Asphalt landscape",
+      "level": "L_BaseLandscape03",
+      "flat": false,
+      "note": "Asphalt terrain. Height is not sampled."
+    },
+    {
+      "id": "BaseLandscape04",
+      "name": "Mountain landscape",
+      "level": "L_BaseLandscape04",
+      "flat": false,
+      "note": "Mountain terrain. Height is not sampled."
+    },
+    {
+      "id": "Lv_Facto",
+      "name": "The factory",
+      "level": "Lv_Facto",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    },
+    {
+      "id": "DriftTrack",
+      "name": "Drift track",
+      "level": "DriftTrack1",
+      "flat": false,
+      "note": "Official level. Height is not sampled by this tool."
+    }
+  ],
+  "decals": {
+    "blueprint": "BP_ME_Decals_C",
+    "rows": 103,
+    "name": "Each row is that blueprint with a different material. The catalogue uses the material name.",
+    "default_decal_size_cm": [128, 256, 256],
+    "default_note": "UDecalComponent's constructor sets DecalSize to 128, 256, 256 cm, and that vector is the box extent around the pivot (depth, width, height). The blueprint can override it. No decal mesh bounds exist, so every decal row stays bounds_estimated."
+  },
+  "gates": [
+    {
+      "id": "STARTGATE",
+      "start": true
+    },
+    {
+      "id": "DefaultGate",
+      "start": false
+    },
+    {
+      "id": "DefaultOneW",
+      "start": false
+    },
+    {
+      "id": "SideNeon",
+      "start": false
+    },
+    {
+      "id": "Invisible",
+      "start": false
+    },
+    {
+      "id": "ClassicRound",
+      "start": false
+    },
+    {
+      "id": "GateModul01",
+      "start": false
+    },
+    {
+      "id": "Sideflag_0",
+      "start": false
+    },
+    {
+      "id": "InflSide01",
+      "start": false
+    },
+    {
+      "id": "InflSimpl02",
+      "start": false
+    },
+    {
+      "id": "InflSimpl01",
+      "start": false
+    },
+    {
+      "id": "InflRound01",
+      "start": false
+    },
+    {
+      "id": "InflElev01",
+      "start": false
+    },
+    {
+      "id": "InflDive01",
+      "start": false
+    },
+    {
+      "id": "InflDive02",
+      "start": false
+    },
+    {
+      "id": "InflRond02",
+      "start": false
+    }
+  ]
+}

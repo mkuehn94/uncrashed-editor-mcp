@@ -1,0 +1,118 @@
+# Python caches and package output
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.pyre/
+
+# Local configuration and credentials
+.cursor/
+.vscode/
+.idea/
+.env
+.env.*
+!.env.example
+
+# OS and editor debris
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Zig and other compiler caches
+.zig-cache/
+zig-cache/
+.zig-out/
+zig-out/
+.cache/
+.tox/
+.nox/
+node_modules/
+CMakeFiles/
+cmake-build-*/
+compile_commands.json
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+
+# Native build products and run logs
+native/*.dll
+native/*.exe
+native/*.lib
+native/*.pdb
+native/*.log
+native/agent-cmd.txt
+native/work/
+
+# Temporary captures and local reports
+shots-now.*
+
+# Design caches, backups, and abandoned save copies
+designs/**/__pycache__/
+designs/**/baseline/
+designs/**/collisions/
+designs/**/preserved-district-save/
+designs/**/recovered-autosave-*/
+designs/**/pre-frame-fit/
+designs/**/pre-ground-fit/
+# Keep source scripts in the polish workspace, ignore generated artifacts.
+designs/**/final-polish/*
+!designs/**/final-polish/*.py
+
+# Design command transcripts and generated exchange files
+designs/**/*.commands.txt
+designs/**/commands.txt
+designs/**/*.manifest.json
+designs/**/*.replies.json
+designs/**/*-replies.json
+designs/**/*.request
+
+# Large live snapshots and transient audit output
+designs/**/before-*.json
+designs/**/after-*.json
+designs/**/*-live.json
+designs/**/*-inventory.txt
+designs/**/audit-*.json
+designs/**/collision-*.json
+designs/**/environment-*.json
+designs/**/foundation-*.json
+designs/**/final-*.json
+designs/**/*-summary.json
+designs/**/*-result.json
+designs/**/*-hashes.json
+designs/**/anchor-request.txt
+designs/**/anchors.txt
+designs/**/post-anchors.txt
+
+# Personal map workspaces (large screenshots, saves and build scripts)
+designs/
+
+# Early native experiments, superseded by native/agent.c
+native/cam_watch.c
+native/place_once.c
+native/spawn.c
+native/spawn_agent.c
+native/stack_watch.c
+native/try_loop.py
+native/try_spawn.c
+
+# Leftover stub
+src/uncrashed_mcp/live_spawn.py
