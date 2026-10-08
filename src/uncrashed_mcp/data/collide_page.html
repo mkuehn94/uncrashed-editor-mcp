@@ -1,0 +1,383 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: a survey sheet. Header with the tally, then the plan of the map beside the list of issues you work
+   through, then what the problems look like in the editor and how the check works. */
+:root {
+  --bg: #edf0f1; --panel: #fbfcfc; --ink: #16202a; --muted: #57636e; --line: #d3d9dd; --sunken: #e4e8ea;
+  --accent: #e89400; --accent-ink: #1b1300;
+  --map-bg: #dfe5e8; --m-ground: #cbd3d7; --m-water: #b6d0e0; --m-plant: #a7c0a2; --m-other: #a9b3ba;
+  --m-box: #8e9aa4; --m-veh: #b3a597; --m-rock: #a09482; --m-build: #8996a0; --m-edge: #ffffff;
+  --display: "Saira Semi Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1418; --panel: #151c22; --ink: #e2e8ed; --muted: #92a0ab; --line: #26313a; --sunken: #1b242b;
+    --accent: #f2a516; --accent-ink: #1b1300;
+    --map-bg: #0b1014; --m-ground: #1a232a; --m-water: #12304a; --m-plant: #233528; --m-other: #2d3841;
+    --m-box: #3a4752; --m-veh: #4a4037; --m-rock: #4a4337; --m-build: #3f4c57; --m-edge: #0b1014;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1418; --panel: #151c22; --ink: #e2e8ed; --muted: #92a0ab; --line: #26313a; --sunken: #1b242b;
+  --accent: #f2a516; --accent-ink: #1b1300;
+  --map-bg: #0b1014; --m-ground: #1a232a; --m-water: #12304a; --m-plant: #233528; --m-other: #2d3841;
+  --m-box: #3a4752; --m-veh: #4a4037; --m-rock: #4a4337; --m-build: #3f4c57; --m-edge: #0b1014;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; margin: 0; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.05; margin: 6px 0 10px;
+  letter-spacing: .005em; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0 0 12px; text-wrap: balance; }
+.lede { max-width: 72ch; color: var(--muted); margin: 0; }
+.lede b { color: var(--ink); font-weight: 600; }
+header { display: grid; gap: 18px; margin-bottom: 22px; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  border-radius: 999px; padding: 6px 12px 6px 10px; font: 500 13px/1.2 var(--body); cursor: pointer; }
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.chip .n { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.chip[aria-pressed="false"] { opacity: .5; background: transparent; }
+.chip[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+.chip.toggle { border-style: dashed; }
+.chip.toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); opacity: 1; }
+button:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.work { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.mapbox { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--map-bg); border: 1px solid var(--line);
+  border-radius: 10px; overflow: hidden; height: min(78vh, 860px); min-height: 380px; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+canvas.drag { cursor: grabbing; }
+.mapctl { position: absolute; right: 10px; top: 10px; display: grid; gap: 6px; }
+.mapctl button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font: 600 16px/1 var(--body); cursor: pointer; }
+.mapctl button.fit { font-size: 11px; font-family: var(--mono); }
+.readout { position: absolute; left: 10px; bottom: 10px; font: 12px/1.3 var(--mono); color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
+.north { position: absolute; left: 10px; top: 10px; font: 11px/1.3 var(--mono); color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.listhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 8px; }
+.listhead span { font: 12px var(--mono); color: var(--muted); }
+.list { display: grid; gap: 6px; max-height: min(78vh, 860px); overflow: auto; padding-right: 4px; }
+.item { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; min-width: 0; }
+.item.sel { border-color: var(--accent); border-left-color: var(--c); box-shadow: 0 0 0 1px var(--accent); }
+.item > button { all: unset; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; padding: 9px 10px; width: 100%;
+  box-sizing: border-box; cursor: pointer; }
+.item > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+.id { font: 600 12px/1.6 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3.2ch; }
+.what { min-width: 0; }
+.what .k { font-weight: 600; font-size: 14px; }
+.what .o { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.where { grid-column: 2 / 4; font: 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.sev { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-radius: 4px;
+  align-self: start; border: 1px solid var(--line); color: var(--muted); }
+.sev.hi { background: var(--c); color: #fff; border-color: transparent; }
+.more { padding: 0 12px 12px 14px; display: grid; gap: 8px; font-size: 13px; }
+.more ul { margin: 0; padding-left: 18px; }
+.cam { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cam code { font: 12px/1.4 var(--mono); background: var(--sunken); border-radius: 6px; padding: 6px 8px; overflow-x: auto; max-width: 100%;
+  white-space: nowrap; display: block; }
+.cam button, .shot button { border: 1px solid var(--line); background: var(--sunken); color: var(--ink); border-radius: 6px; padding: 5px 10px;
+  font: 500 12px var(--body); cursor: pointer; }
+.hint { color: var(--muted); }
+section.below { margin-top: 40px; display: grid; gap: 14px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.shot { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; }
+.shot img { display: block; width: 100%; height: auto; aspect-ratio: 1074 / 833; object-fit: cover; background: var(--sunken); }
+.shot figcaption { padding: 10px 12px 12px; display: grid; gap: 8px; font-size: 14px; }
+.shot figcaption .tag { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.note h3 { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0 0 8px; }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.note code { font: 12.5px var(--mono); background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .mapbox { position: relative; height: 58vh; }
+  .list { max-height: none; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow" id="eyebrow">Uncrashed track editor</div>
+      <h1 id="title">__TITLE__</h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <div class="tally" id="tally" role="group" aria-label="Show issue types"></div>
+  </header>
+
+  <div class="work">
+    <div class="mapbox" id="mapbox">
+      <canvas id="map" aria-label="Plan of the map with every issue marked"></canvas>
+      <div class="north">top = −Y · right = +X</div>
+      <div class="mapctl">
+        <button type="button" id="zin" aria-label="Zoom in">+</button>
+        <button type="button" id="zout" aria-label="Zoom out">−</button>
+        <button type="button" id="zfit" class="fit" aria-label="Show all issues">all</button>
+      </div>
+      <div class="readout" id="readout">x — · y — m</div>
+    </div>
+    <div>
+      <div class="listhead"><h2>Issues</h2><span id="count"></span></div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+
+  <section class="below" id="shotsec" hidden>
+    <h2>What they look like in the editor</h2>
+    <div class="shots" id="shots"></div>
+  </section>
+
+  <section class="below">
+    <div class="notes" id="notes"></div>
+  </section>
+</div>
+
+<script id="report" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const R = JSON.parse(document.getElementById("report").textContent);
+  const K = R.kinds, order = Object.keys(K);
+  const fmt = (v, d = 1) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem("collide-filters") || "{}"); } catch (e) { store = {}; }
+  const active = new Set(store.active || order.filter((k) => k !== "hover"));
+  let highOnly = !!store.highOnly;
+  const save = () => { try { localStorage.setItem("collide-filters", JSON.stringify({ active: [...active], highOnly })); } catch (e) {} };
+  let selected = null;
+
+  /* header */
+  if (R.eyebrow) document.getElementById("eyebrow").textContent = R.eyebrow;
+  const minor = Object.values(R.sunk_minor || {}).reduce((a, b) => a + b, 0);
+  document.getElementById("lede").innerHTML = R.subtitle ||
+    `<b class="num">${R.objects_checked.toLocaleString("en")}</b> placed objects checked against the game's own collision. ` +
+    `Balloons are allowed to float. Touching parts, construction joints, plants and ground tiles are not counted. ` +
+    `${minor ? `<b class="num">${minor.toLocaleString("en")}</b> small props and containers sit 5 cm or more into a ground tile; they are counted, not listed.` : ""}`;
+
+  const tally = document.getElementById("tally");
+  for (const k of order) {
+    const n = R.summary[k] || 0;
+    if (!n) continue;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.style.setProperty("--c", K[k].colour);
+    b.setAttribute("aria-pressed", active.has(k)); b.title = K[k].hint;
+    b.innerHTML = `<span class="dot"></span>${K[k].label}<span class="n">${n}</span>`;
+    b.onclick = () => { active.has(k) ? active.delete(k) : active.add(k); b.setAttribute("aria-pressed", active.has(k)); save(); refresh(); };
+    tally.appendChild(b);
+  }
+  const hi = document.createElement("button");
+  hi.type = "button"; hi.className = "chip toggle"; hi.setAttribute("aria-pressed", highOnly);
+  hi.textContent = "High severity only";
+  hi.onclick = () => { highOnly = !highOnly; hi.setAttribute("aria-pressed", highOnly); save(); refresh(); };
+  tally.appendChild(hi);
+
+  /* list */
+  const measureText = (c) => {
+    if (c.measure == null) return c.kind.startsWith("float") ? "nothing below it at all" : "";
+    if (c.kind === "sunk") return `${Math.round(c.measure)} cm deep`;
+    if (c.kind.startsWith("float") || c.kind === "hover") return `${fmt(c.measure)} m above what is under it`;
+    return "";
+  };
+  const camText = (v) => `move_camera(x=${v.x}, y=${v.y}, z=${v.z}, yaw=${v.yaw}, pitch=${v.pitch})`;
+  const list = document.getElementById("list");
+  const rows = new Map();
+  for (const c of R.clusters) {
+    const el = document.createElement("div");
+    el.className = "item"; el.style.setProperty("--c", K[c.kind].colour); el.id = "issue-" + c.id;
+    const m = measureText(c);
+    el.innerHTML =
+      `<button type="button" aria-expanded="false"><span class="id">#${c.id}</span>` +
+      `<span class="what"><div class="k">${K[c.kind].label}${c.n > 1 ? ` <span class="num hint">· ${c.n} spots</span>` : ""}</div>` +
+      `<div class="o">${c.objects.slice(0, 3).join(", ")}</div></span>` +
+      `<span class="sev ${c.severity > 1 ? "hi" : ""}">${c.severity > 1 ? "high" : "low"}</span>` +
+      `<span class="where">x ${fmt(c.x)} · y ${fmt(c.y)} · z ${fmt(c.z)}${c.z_top > c.z + 0.5 ? "–" + fmt(c.z_top) : ""} m${m ? " · " + m : ""}</span></button>` +
+      `<div class="more" hidden><div class="hint">${K[c.kind].hint}</div>` +
+      `<ul>${c.objects.map((o) => `<li>${o}</li>`).join("")}</ul>` +
+      `<div class="cam"><code>${camText(c.view)}</code><button type="button">Copy camera</button></div></div>`;
+    const btn = el.querySelector("button"), more = el.querySelector(".more");
+    btn.onclick = () => select(c.id, true);
+    el.querySelector(".cam button").onclick = (ev) => {
+      const t = camText(c.view), b = ev.currentTarget;
+      const ok = () => { b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy camera"), 1400); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents(el.querySelector(".cam code"));
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected, press copy"; };
+      try { navigator.clipboard.writeText(t).then(ok, fallback); } catch (e) { fallback(); }
+    };
+    rows.set(c.id, { el, btn, more, c });
+    list.appendChild(el);
+  }
+  const visible = (c) => active.has(c.kind) && (!highOnly || c.severity > 1);
+  function refresh() {
+    let n = 0;
+    for (const { el, c } of rows.values()) { const v = visible(c); el.hidden = !v; n += v; }
+    document.getElementById("count").textContent = `showing ${n} of ${R.clusters.length}`;
+    draw();
+  }
+  function select(id, fromList) {
+    const prev = selected && rows.get(selected);
+    if (prev) { prev.el.classList.remove("sel"); prev.more.hidden = true; prev.btn.setAttribute("aria-expanded", "false"); }
+    if (prev && prev.c.id === id && fromList) { selected = null; draw(); return; }
+    selected = id;
+    const r = rows.get(id);
+    if (!r) return;
+    if (!visible(r.c)) { active.add(r.c.kind); highOnly = false; syncChips(); save(); refresh(); }
+    r.el.classList.add("sel"); r.more.hidden = false; r.btn.setAttribute("aria-expanded", "true");
+    if (!fromList) r.el.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    view.cx = r.c.x; view.cy = r.c.y; view.s = Math.max(view.s, 3.2);
+    draw();
+  }
+  function syncChips() {
+    const chips = tally.querySelectorAll(".chip:not(.toggle)");
+    let i = 0;
+    for (const k of order) { if (!(R.summary[k] || 0)) continue; chips[i++].setAttribute("aria-pressed", active.has(k)); }
+    hi.setAttribute("aria-pressed", highOnly);
+  }
+
+  /* map */
+  const cv = document.getElementById("map"), box = document.getElementById("mapbox"), ctx = cv.getContext("2d");
+  const view = { cx: 0, cy: 0, s: 1 };
+  let W = 0, H = 0, dpr = 1;
+  const layers = ["water", "rock", "ground", "plant", "other", "box", "veh", "build"];
+  const layerVar = { water: "--m-water", ground: "--m-ground", plant: "--m-plant", other: "--m-other", box: "--m-box", veh: "--m-veh", rock: "--m-rock", build: "--m-build" };
+  function fit(items) {
+    if (!items.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of items) { x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y); x1 = Math.max(x1, c.x); y1 = Math.max(y1, c.y); }
+    const pad = 40;
+    view.cx = (x0 + x1) / 2; view.cy = (y0 + y1) / 2;
+    view.s = Math.min((W - 2 * pad) / Math.max(1, x1 - x0), (H - 2 * pad) / Math.max(1, y1 - y0));
+  }
+  function size() {
+    dpr = window.devicePixelRatio || 1;
+    W = box.clientWidth; H = box.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  }
+  const sx = (x) => (x - view.cx) * view.s + W / 2, sy = (y) => (y - view.cy) * view.s + H / 2;
+  let pending = false;
+  function draw() { if (!pending) { pending = true; requestAnimationFrame(paint); } }
+  function paint() {
+    pending = false;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = css("--map-bg"); ctx.fillRect(0, 0, W, H);
+    const s = view.s / 10;   // plan is in decimetres
+    const ox = W / 2 - view.cx * view.s, oy = H / 2 - view.cy * view.s;
+    for (const L of layers) {
+      const rs = (R.plan || {})[L]; if (!rs) continue;
+      ctx.fillStyle = css(layerVar[L]);
+      ctx.globalAlpha = L === "rock" ? 0.45 : 1;   // cliffs and mountains have huge boxes: keep them in the background
+      ctx.beginPath();
+      for (const r of rs) {
+        const x = r[0] * s + ox, y = r[1] * s + oy, w = (r[2] - r[0]) * s, h = (r[3] - r[1]) * s;
+        if (x > W || y > H || x + w < 0 || y + h < 0) continue;
+        ctx.rect(x, y, Math.max(w, 0.8), Math.max(h, 0.8));
+      }
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    const edge = css("--m-edge"), accent = css("--accent");
+    const label = view.s > 1.4;
+    ctx.font = "600 11px " + css("--mono");
+    ctx.textBaseline = "middle";
+    const vis = R.clusters.filter(visible);
+    vis.sort((a, b) => a.severity - b.severity);
+    for (const c of vis) {
+      const x = sx(c.x), y = sy(c.y);
+      if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+      const r = c.severity > 1 ? 6 : 4.5;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = K[c.kind].colour; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = edge; ctx.stroke();
+      if (label) { ctx.fillStyle = css("--ink"); ctx.fillText(String(c.id), x + r + 3, y); }
+    }
+    const sel = selected && rows.get(selected);
+    if (sel && visible(sel.c)) {
+      const x = sx(sel.c.x), y = sy(sel.c.y);
+      ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = accent; ctx.stroke();
+    }
+    // scale bar
+    const steps = [5, 10, 20, 50, 100, 200, 500, 1000];
+    const m = steps.find((v) => v * view.s > 70) || 1000;
+    const bx = W - 16 - m * view.s, by = H - 18;
+    ctx.fillStyle = css("--ink"); ctx.fillRect(bx, by, m * view.s, 2);
+    ctx.textAlign = "right"; ctx.fillText(m + " m", W - 16, by - 9); ctx.textAlign = "left";
+  }
+  function zoomAt(f, px, py) {
+    const wx = (px - W / 2) / view.s + view.cx, wy = (py - H / 2) / view.s + view.cy;
+    view.s = Math.min(60, Math.max(0.05, view.s * f));
+    view.cx = wx - (px - W / 2) / view.s; view.cy = wy - (py - H / 2) / view.s;
+    draw();
+  }
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); const b = cv.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - b.left, e.clientY - b.top); }, { passive: false });
+  const ptrs = new Map(); let moved = 0, pinch = 0;
+  cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; cv.classList.add("drag");
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  cv.addEventListener("pointermove", (e) => {
+    const b = cv.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+    document.getElementById("readout").textContent = `x ${fmt((px - W / 2) / view.s + view.cx, 0)} · y ${fmt((py - H / 2) / view.s + view.cy, 0)} m`;
+    if (!ptrs.has(e.pointerId)) return;
+    const p = ptrs.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1];
+    ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 2) {
+      const [a, c] = [...ptrs.values()], d = Math.hypot(a[0] - c[0], a[1] - c[1]);
+      if (pinch) zoomAt(d / pinch, (a[0] + c[0]) / 2 - b.left, (a[1] + c[1]) / 2 - b.top);
+      pinch = d; moved += 10; return;
+    }
+    moved += Math.abs(dx) + Math.abs(dy);
+    view.cx -= dx / view.s; view.cy -= dy / view.s; draw();
+  });
+  const up = (e) => {
+    const b = cv.getBoundingClientRect();
+    if (ptrs.size === 1 && moved < 5) {
+      const px = e.clientX - b.left, py = e.clientY - b.top;
+      let best = null, bd = 14;
+      for (const c of R.clusters) { if (!visible(c)) continue; const d = Math.hypot(sx(c.x) - px, sy(c.y) - py); if (d < bd) { bd = d; best = c; } }
+      if (best) select(best.id, false);
+    }
+    ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0; if (!ptrs.size) cv.classList.remove("drag");
+  };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  document.getElementById("zin").onclick = () => zoomAt(1.5, W / 2, H / 2);
+  document.getElementById("zout").onclick = () => zoomAt(1 / 1.5, W / 2, H / 2);
+  document.getElementById("zfit").onclick = () => { fit(R.clusters.filter(visible)); draw(); };
+  new ResizeObserver(() => { size(); draw(); }).observe(box);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  /* screenshots */
+  if (R.shots && R.shots.length) {
+    document.getElementById("shotsec").hidden = false;
+    const wrap = document.getElementById("shots");
+    for (const s of R.shots) {
+      const c = R.clusters.find((x) => x.id === s.issue);
+      const f = document.createElement("figure");
+      f.className = "shot"; if (c) f.style.setProperty("--c", K[c.kind].colour);
+      f.innerHTML = `<img alt="" loading="lazy" src="${s.src}"><figcaption>` +
+        (c ? `<span class="tag">#${c.id} · ${K[c.kind].label}</span>` : "") + `<span>${s.caption}</span>` +
+        (c ? `<span><button type="button">Show on the map</button></span>` : "") + `</figcaption>`;
+      f.querySelector("img").alt = s.caption;
+      if (c) f.querySelector("button").onclick = () => { select(c.id, false); document.getElementById("mapbox").scrollIntoView({ block: "start", behavior: "smooth" }); };
+      wrap.appendChild(f);
+    }
+  }
+
+  /* notes */
+  if (R.notes) document.getElementById("notes").innerHTML = R.notes.map((n) => `<div class="note"><h3>${n.title}</h3>${n.html}</div>`).join("");
+
+  size();
+  fit(R.clusters.filter(visible).length ? R.clusters.filter(visible) : R.clusters);
+  refresh();
+})();
+</script>
