@@ -1,3 +1,5 @@
+
+
 # uncrashed-mcp
 
 MCP for agents to help you create maps for **Uncrashed: FPV Drone Simulator** [buy here](https://store.steampowered.com/app/1682970/Uncrashed_FPV_Drone_Simulator/), inside the game's own track editor. no one-shot, gradual refinement and inspection of the agents work. I figured this would work much better than just one-shot a json map.
@@ -5,7 +7,7 @@ it EXPLICITLY does not simulate interacting with the UI or grabbing focus of the
 
 This was done with a small DLL-File which gets injected into your game and places things like you would by "hand" by called the internal functions directly, you can keep editing it normally afterwards obviously.
 
-![A cableway station on a ridge with race gates, built by an agent](docs/images/hero.jpg)
+https://github.com/user-attachments/assets/7ec006c0-9635-4eec-8eaf-969da88a30ca
 
 This is an [MCP](https://modelcontextprotocol.io) server. You can hook it into most modern agents/harnesses, open the track editor, and ask for something like *"build a small mountain village with a gate course through the main street"*. The agent places objects, looks at the result through the game's camera, fixes what's off and saves the map. You watch it happen in the editor.
 
