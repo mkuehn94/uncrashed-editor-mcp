@@ -105,3 +105,15 @@ A note on game data: `src/uncrashed_mcp/data/meshes.bin` (simplified collision s
 ## Notes
 
 AI was used partially for a lot of the reverse engineering stuff, and general coding assistance, since I made this for myself.
+
+## TODO:
+
+- It still struggles with roads (maybe it is libertarian 😂) collision with terrain should be fairly easy to detect.
+- Make it create actually interesting races instead of dull non challenging garbage
+- some stairs etc should be connected (maybe an agent problem)
+- night maps and light sources (never tried that)
+- making use of stickers / decals
+- some intersection bugs still occur, fix
+- check how much lower resolution screenshots reduce quality
+- add option to one-shot first iteration (not sure if this is a good idea)
+- find option to reduce CPU/GPU usage of editor while still maintaining full functionallity
