@@ -48,7 +48,7 @@
      audit <request> <output> <mode> [spacing gap depth canopies]  environment.h diagnostics
      actors <x> <y> <z> <radius> [limit] [all]         placed editor actors near a point
      clear                                             destroy every placed object and gate
-     base <row>                                        editor "LoadLevel": switch base level
+     base <row>                                        reopen the editor level with ?MapEditor=<row> (menu's way)
      setmap <folder|absolute directory>                editor's current map folder (for Save)
      terrain x y z_from z_to                           bare landscape, ignoring foliage / structures
      laps <n>
@@ -64,6 +64,16 @@
      zones status|refresh                             portable exclusion intent / reversible masks
      batch <windows path> [quiet]                      one verb per line, all in this job
                                                        (quiet: only errors and the summary)
+     collision status [unmatched] | channels             records/rules/identity counters | pawn object channels (run while flying)
+     collision refresh [all|<sel>]                       re-read UncrashedMCP.collision and re-apply (manual records kept; all/<sel> hands them back to rules)
+     collision query|on|off|flythrough|nophysics <sel> [preview] [force] [keepbody] [brief] [channels=2,5,6] [limit=n] [out=file]
+     collision physics off|on <sel> [...]              sel: actor=<hex> group=<tag> row=<row> box=x0,y0,z0,x1,y1,z1 (pivot, cm) list=<file> all
+                                                       (placed editor objects only; gates need force; originals restored exactly by "on")
+     perf <file> [x0 y0 x1 y1]                         read-only performance scan of every loaded actor + components
+     rowflags <file>                                   all simple S_ME_Asset fields of every catalogue row
+     frametime                                         world delta / real time / frame count / QPC clock
+     sweep <request> <output>                          route clearance: swept craft box + radial probes / drape (clearance.h)
+     gatebox <output> [channel]                        race gates and their collision components (trigger = opening); channel = index 0..31
    Infrastructure
      ping | scan | resolve | unload
    Debug
@@ -2868,28 +2878,33 @@ static int current_base(char *out, int cap) {
     return 1;
 }
 
+/* Switch the base the way the game's own menu does: reopen the editor level with
+   "?MapEditor=<row>" (a fresh world; LoadedMapDirectory on the game instance survives).
+   Calling the editor pawn's LoadLevel on a running editor instead streams the new base in
+   but never removes the old one: both stay visible and the "Loading map editor" screen
+   never closes (seen with every agent build). The editor's actors are new afterwards. */
+static int verb_console(const char *line, char *err, int ecap);
 static int verb_base(const struct args *a, char *err, int ecap) {
-    uint8_t *pawn = editor_pawn(), *fn = object_function(pawn, "LoadLevel");
-    uint8_t parms[0x40];
     struct row row;
-    int o;
+    char line[256];
+    const char *p;
     if (a->n < 2) {
         snprintf(err, ecap, "usage: base <row>");
         return 0;
     }
-    if (!fn) {
-        snprintf(err, ecap, "editor function 'LoadLevel' not found");
+    for (p = a->v[1]; *p; p++) {
+        if (!isalnum((unsigned char)*p) && *p != '_') {
+            snprintf(err, ecap, "base row must be letters, digits or _");
+            return 0;
+        }
+    }
+    if (!table_row("DT_LevelName", a->v[1], &row)) {
+        snprintf(err, ecap, "unknown base level %s (not a DT_LevelName row)", a->v[1]);
         return 0;
     }
-    if (!table_row("DT_LevelName", a->v[1], &row) && !make_fname(a->v[1], &row.fname)) {
-        snprintf(err, ecap, "unknown base level %s", a->v[1]);
-        return 0;
-    }
-    o = param_offset(fn, "RowName");
-    memset(parms, 0, sizeof parms);
-    memcpy(parms + (o >= 0 ? o : 0), &row.fname, 8);
-    call(pawn, fn, parms);
-    outf("base %s requested", a->v[1]);
+    snprintf(line, sizeof line, "console open /Game/MapEditor/L_MapEditor?MapEditor=%s", a->v[1]);
+    if (!verb_console(line, err, ecap)) return 0;
+    outf("base %s requested (editor level reopens; wait for mapinfo base)", a->v[1]);
     return 1;
 }
 
@@ -3145,6 +3160,9 @@ static void hexdump(const uint8_t *p, int n) {
 #include "groups.h"
 #include "anchors.h"
 #include "zones.h"
+#include "collision.h"
+#include "perf.h"
+#include "clearance.h"
 
 static int parse_hex(const char *s, uint8_t *buf, int cap) {
     int n = 0;
@@ -3390,6 +3408,18 @@ static int dispatch(const char *line, int allow_batch) {
         r = verb_raise(&a, err, sizeof err);
     } else if (ieq(verb, "cells")) {
         r = verb_cells(&a, err, sizeof err);
+    } else if (ieq(verb, "collision")) {
+        r = verb_collision(&a, err, sizeof err);
+    } else if (ieq(verb, "perf")) {
+        r = verb_perf(&a, err, sizeof err);
+    } else if (ieq(verb, "rowflags")) {
+        r = verb_rowflags(&a, err, sizeof err);
+    } else if (ieq(verb, "frametime")) {
+        r = verb_frametime(err, sizeof err);
+    } else if (ieq(verb, "sweep")) {
+        r = verb_sweep(&a, err, sizeof err);
+    } else if (ieq(verb, "gatebox")) {
+        r = verb_gatebox(&a, err, sizeof err);
     } else if (ieq(verb, "gates")) {
         r = verb_gates();
     } else if (ieq(verb, "actors")) {
@@ -3443,6 +3473,10 @@ static uint64_t job_fn(void *arg) {
     if (ieq(verb, "unload")) {
         if (!foliage_restore()) {
             outf("%d error %s; unload refused to preserve restoration data", seq, foliage_error);
+            return 0;
+        }
+        if (CF.ok && !coll_restore_all()) {
+            outf("%d error %s; unload refused to preserve collision originals", seq, coll_error);
             return 0;
         }
         capture_stop_native();
@@ -3521,6 +3555,9 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
             /* Stop automatic work after faults; explicit commands still work. */
             managed_faulted = 1;
             logf_("managed background work faulted; reload DLL before re-enabling");
+        } else if (!guarded((void *)collision_tick, 0) || tripped) {
+            managed_faulted = 1;
+            logf_("collision background work faulted; reload DLL before re-enabling");
         }
     }
     return CallWindowProcW(old_proc, hwnd, msg, wparam, lparam);

@@ -14,6 +14,7 @@ from .mapfile import sanitize_name
 
 STATE_NAME = 'UncrashedMCP.json'
 ZONES_NAME = 'UncrashedMCP.zones'
+COLLISION_NAME = 'UncrashedMCP.collision'  # runtime rules for native/collision.h (scenery.py)
 REPORTS = Path('/tmp/uncrashed-managed')
 TAG = re.compile(r'^[A-Za-z0-9_.-]{1,96}$')
 
@@ -62,7 +63,8 @@ def read_state(info: dict, root: Path) -> dict:
     data = json.loads(path.read_text())
     if data.get('version') != 1 or data.get('base') != info['base']:
         raise ValueError('MCP metadata version/base mismatch; do not apply to another terrain')
-    if not isinstance(data.get('zones'), dict) or not isinstance(data.get('assemblies'), dict):
+    if not isinstance(data.get('zones'), dict) or not isinstance(data.get('assemblies'), dict) or \
+            not isinstance(data.get('collision', {}), dict):
         raise ValueError('invalid MCP metadata')
     return data
 
@@ -272,8 +274,12 @@ def copy_metadata(source: Path, destination: Path, base: str) -> None:
     """Save-as copies portable intent, never actor-handle undo journals."""
     if source == destination or not (source/STATE_NAME).exists():
         return
-    if (destination/STATE_NAME).exists() or (destination/ZONES_NAME).exists():
+    if any((destination/name).exists() for name in (STATE_NAME, ZONES_NAME, COLLISION_NAME)):
         raise ValueError('save-as target already has MCP metadata; explicit merge required')
     state = read_state({'base': base}, source)
+    from . import scenery  # collision rules are portable intent too
+    collision = scenery.collision_text(base, scenery.rules_of(state)) if state.get('collision', {}).get('rules') else None
     write_state(destination, state)
     atomic_write(destination/ZONES_NAME, zones_text(state))
+    if collision is not None:
+        atomic_write(destination/COLLISION_NAME, collision)

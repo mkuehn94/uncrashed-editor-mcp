@@ -1,0 +1,366 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/* Same survey-sheet style as collide_page.html.
+   Layout: a survey sheet. Header with the tally, then the plan of the map beside the list of issues you work
+   through, then what the problems look like in the editor and how the check works. */
+:root {
+  --bg: #edf0f1; --panel: #fbfcfc; --ink: #16202a; --muted: #57636e; --line: #d3d9dd; --sunken: #e4e8ea;
+  --accent: #e89400; --accent-ink: #1b1300;
+  --map-bg: #dfe5e8; --m-ground: #cbd3d7; --m-water: #b6d0e0; --m-plant: #a7c0a2; --m-other: #a9b3ba;
+  --m-box: #8e9aa4; --m-veh: #b3a597; --m-rock: #a09482; --m-build: #8996a0; --m-edge: #ffffff;
+  --display: "Saira Semi Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1418; --panel: #151c22; --ink: #e2e8ed; --muted: #92a0ab; --line: #26313a; --sunken: #1b242b;
+    --accent: #f2a516; --accent-ink: #1b1300;
+    --map-bg: #0b1014; --m-ground: #1a232a; --m-water: #12304a; --m-plant: #233528; --m-other: #2d3841;
+    --m-box: #3a4752; --m-veh: #4a4037; --m-rock: #4a4337; --m-build: #3f4c57; --m-edge: #0b1014;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1418; --panel: #151c22; --ink: #e2e8ed; --muted: #92a0ab; --line: #26313a; --sunken: #1b242b;
+  --accent: #f2a516; --accent-ink: #1b1300;
+  --map-bg: #0b1014; --m-ground: #1a232a; --m-water: #12304a; --m-plant: #233528; --m-other: #2d3841;
+  --m-box: #3a4752; --m-veh: #4a4037; --m-rock: #4a4337; --m-build: #3f4c57; --m-edge: #0b1014;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; margin: 0; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.05; margin: 6px 0 10px;
+  letter-spacing: .005em; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0 0 12px; text-wrap: balance; }
+.lede { max-width: 72ch; color: var(--muted); margin: 0; }
+.lede b { color: var(--ink); font-weight: 600; }
+header { display: grid; gap: 18px; margin-bottom: 22px; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  border-radius: 999px; padding: 6px 12px 6px 10px; font: 500 13px/1.2 var(--body); cursor: pointer; }
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.chip .n { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.chip[aria-pressed="false"] { opacity: .5; background: transparent; }
+.chip[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+.chip.toggle { border-style: dashed; }
+.chip.toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); opacity: 1; }
+button:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.work { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.mapbox { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--map-bg); border: 1px solid var(--line);
+  border-radius: 10px; overflow: hidden; height: min(78vh, 860px); min-height: 380px; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+canvas.drag { cursor: grabbing; }
+.mapctl { position: absolute; right: 10px; top: 10px; display: grid; gap: 6px; }
+.mapctl button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font: 600 16px/1 var(--body); cursor: pointer; }
+.mapctl button.fit { font-size: 11px; font-family: var(--mono); }
+.readout { position: absolute; left: 10px; bottom: 10px; font: 12px/1.3 var(--mono); color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
+.north { position: absolute; left: 10px; top: 10px; font: 11px/1.3 var(--mono); color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.listhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 8px; }
+.listhead span { font: 12px var(--mono); color: var(--muted); }
+.list { display: grid; gap: 6px; max-height: min(78vh, 860px); overflow: auto; padding-right: 4px; }
+.item { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; min-width: 0; }
+.item.sel { border-color: var(--accent); border-left-color: var(--c); box-shadow: 0 0 0 1px var(--accent); }
+.item > button { all: unset; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; padding: 9px 10px; width: 100%;
+  box-sizing: border-box; cursor: pointer; }
+.item > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+.id { font: 600 12px/1.6 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3.2ch; }
+.what { min-width: 0; }
+.what .k { font-weight: 600; font-size: 14px; }
+.what .o { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.where { grid-column: 2 / 4; font: 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.sev { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-radius: 4px;
+  align-self: start; border: 1px solid var(--line); color: var(--muted); }
+.sev.hi { background: var(--c); color: #fff; border-color: transparent; }
+.more { padding: 0 12px 12px 14px; display: grid; gap: 8px; font-size: 13px; }
+.more ul { margin: 0; padding-left: 18px; }
+.cam { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cam code { font: 12px/1.4 var(--mono); background: var(--sunken); border-radius: 6px; padding: 6px 8px; overflow-x: auto; max-width: 100%;
+  white-space: nowrap; display: block; }
+.cam button, .shot button { border: 1px solid var(--line); background: var(--sunken); color: var(--ink); border-radius: 6px; padding: 5px 10px;
+  font: 500 12px var(--body); cursor: pointer; }
+.hint { color: var(--muted); }
+section.below { margin-top: 40px; display: grid; gap: 14px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.shot { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; }
+.shot img { display: block; width: 100%; height: auto; aspect-ratio: 1074 / 833; object-fit: cover; background: var(--sunken); }
+.shot figcaption { padding: 10px 12px 12px; display: grid; gap: 8px; font-size: 14px; }
+.shot figcaption .tag { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.note h3 { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0 0 8px; }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.note code { font: 12.5px var(--mono); background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .mapbox { position: relative; height: 58vh; }
+  .list { max-height: none; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<style>
+.profile { width: 100%; height: 150px; display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; cursor: crosshair; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 13px/1.5 var(--mono); color: var(--muted); }
+.facts b { color: var(--ink); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Uncrashed track editor · route clearance</div>
+      <h1>__TITLE__</h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <div class="facts" id="facts"></div>
+    <div class="tally" id="tally" role="group" aria-label="Show issue types"></div>
+  </header>
+
+  <div class="work">
+    <div class="mapbox" id="mapbox">
+      <canvas id="map" aria-label="Plan of the route with every issue marked"></canvas>
+      <div class="north">top = −Y · right = +X · route coloured by clearance</div>
+      <div class="mapctl">
+        <button type="button" id="zin" aria-label="Zoom in">+</button>
+        <button type="button" id="zout" aria-label="Zoom out">−</button>
+        <button type="button" id="zfit" class="fit" aria-label="Show the whole route">all</button>
+      </div>
+      <div class="readout" id="readout">x — · y — m</div>
+    </div>
+    <div>
+      <div class="listhead"><h2>Issues</h2><span id="count"></span></div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+
+  <section class="below">
+    <h2>Clearance along the route</h2>
+    <canvas class="profile" id="prof" aria-label="Minimum clearance in metres against distance along the route"></canvas>
+    <div class="hint" id="profhint"></div>
+  </section>
+
+  <section class="below">
+    <div class="notes" id="notes"></div>
+  </section>
+</div>
+<script id="report" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const R = JSON.parse(document.getElementById("report").textContent);
+  const P = R.profile, margin = P.margin;
+  const K = {
+    collision: ["Collision", "#d1495b", "The craft box swept along the route hits blocking geometry."],
+    gate_frame_hit: ["Gate frame hit", "#c0392b", "The swept craft touches a gate's own frame."],
+    gate_width_small: ["Gate too narrow", "#e67e22", "The opening is narrower than the craft plus twice the margin."],
+    gate_height_small: ["Gate too low", "#e67e22", "The opening is lower than the craft plus twice the margin."],
+    tight: ["Tight spot", "#e89400", "Free space around the craft is below the safety margin."],
+    narrow_corridor: ["Narrow corridor", "#e89400", "Side clearance of the vehicle is below the margin."],
+    ceiling_low: ["Low ceiling", "#8e44ad", "Something above the route is closer than the margin."],
+    overhead_low: ["Low overhead", "#8e44ad", "Something above the vehicle is closer than the margin."],
+    ground_low: ["Close to ground", "#2e86ab", "The route runs closer to the surface below than the margin."],
+    ground_contact: ["Ground contact", "#5c7c8a", "The vehicle box grazes its driving surface (crests, dips, kerbs)."],
+  };
+  const kind = (k) => K[k] || [k, "#7f8c8d", ""];
+  const fmt = (v, d = 1) => v == null ? "—" : (v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const issues = R.issues || [], path = R.path || [];
+  const active = new Set(Object.keys(R.summary || {}));
+  let selected = null;
+
+  document.getElementById("lede").innerHTML =
+    `<b>${P.name}</b> (${P.about || P.kind}) along <b class="num">${fmt(R.route.length_m, 0)} m</b> of route, ` +
+    `${R.route.samples} samples every ${R.route.spacing_m} m. Collision channel <b>${R.collision_channel.name}</b>; ` +
+    `overlap-only triggers are not obstacles.` + (R.route.warning ? ` <b>${R.route.warning}</b>` : "");
+  const mc = R.min_clearance_m;
+  document.getElementById("facts").innerHTML = [
+    ["craft w×l×h", `${P.width}×${P.length}×${P.height} m`], ["margin", `${margin} m`],
+    ["mode", R.mode], ["source", R.route.source], ["loop", R.route.closed ? `closed · ${R.route.laps} laps` : "open"],
+    ["min clearance", mc ? `${fmt(mc.clearance_m, 2)} m at ${fmt(mc.distance_m, 0)} m` : "—"],
+    ...(R.corridor_m ? [["corridor min / median", `${fmt(R.corridor_m.min, 2)} / ${fmt(R.corridor_m.median, 2)} m`]] : []),
+  ].map(([k, v]) => `<span>${k} <b>${v}</b></span>`).join("");
+
+  const tally = document.getElementById("tally");
+  for (const [k, n] of Object.entries(R.summary || {})) {
+    if (!K[k]) continue;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.style.setProperty("--c", kind(k)[1]); b.title = kind(k)[2];
+    b.setAttribute("aria-pressed", "true");
+    b.innerHTML = `<span class="dot"></span>${kind(k)[0]}<span class="n">${n}</span>`;
+    b.onclick = () => { active.has(k) ? active.delete(k) : active.add(k); b.setAttribute("aria-pressed", active.has(k)); refresh(); };
+    tally.appendChild(b);
+  }
+
+  const camText = (v) => `move_camera(x=${v.x}, y=${v.y}, z=${v.z}, yaw=${v.yaw}, pitch=${v.pitch})`;
+  const obText = (o) => !o ? "nothing identified" : [o.name || o.row, o.kind, o.class, o.component_class].filter(Boolean).join(" · ");
+  const list = document.getElementById("list"), rows = new Map();
+  for (const c of issues) {
+    const el = document.createElement("div");
+    el.className = "item"; el.style.setProperty("--c", kind(c.kind)[1]);
+    const span = c.route_span_m[1] > c.route_span_m[0] ? `${fmt(c.route_span_m[0], 0)}–${fmt(c.route_span_m[1], 0)} m` : `${fmt(c.distance_m, 0)} m`;
+    const meas = c.measure_m == null ? "" : ` · ${c.kind.startsWith("gate_") ? "opening" : "clearance"} ${fmt(c.measure_m, 2)} m` +
+      (c.required_m ? ` (needs ${fmt(c.required_m, 2)})` : "");
+    el.innerHTML =
+      `<button type="button" aria-expanded="false"><span class="id">#${c.id}</span>` +
+      `<span class="what"><div class="k">${kind(c.kind)[0]}${c.samples > 1 ? ` <span class="num hint">· ${c.samples} samples</span>` : ""}</div>` +
+      `<div class="o">${obText(c.obstacle)}</div></span>` +
+      `<span class="sev ${c.severity > 2 ? "hi" : ""}">${["", "low", "medium", "high"][c.severity]}</span>` +
+      `<span class="where">at ${span} · x ${fmt(c.at_m[0])} · y ${fmt(c.at_m[1])} · z ${fmt(c.at_m[2])}${meas}</span></button>` +
+      `<div class="more" hidden><div class="hint">${kind(c.kind)[2]}</div>` +
+      `<div class="cam"><code>${camText(c.view)}</code><button type="button">Copy camera</button></div></div>`;
+    const btn = el.querySelector("button"), more = el.querySelector(".more");
+    btn.onclick = () => select(c.id);
+    el.querySelector(".cam button").onclick = (ev) => {
+      const b = ev.currentTarget;
+      try { navigator.clipboard.writeText(camText(c.view)).then(() => { b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy camera"), 1400); }); } catch (e) {}
+    };
+    rows.set(c.id, { el, btn, more, c });
+    list.appendChild(el);
+  }
+  if (!issues.length) list.innerHTML = `<div class="note"><h3>No issues</h3><p class="hint">Nothing closer than the margin along the sampled route.</p></div>`;
+  const visible = (c) => active.has(c.kind);
+  function refresh() {
+    let n = 0;
+    for (const { el, c } of rows.values()) { const v = visible(c); el.hidden = !v; n += v; }
+    document.getElementById("count").textContent = `showing ${n} of ${issues.length}`;
+    draw(); drawProfile();
+  }
+  function select(id) {
+    const prev = selected && rows.get(selected);
+    if (prev) { prev.el.classList.remove("sel"); prev.more.hidden = true; prev.btn.setAttribute("aria-expanded", "false"); }
+    if (prev && prev.c.id === id) { selected = null; draw(); drawProfile(); return; }
+    selected = id;
+    const r = rows.get(id); if (!r) return;
+    r.el.classList.add("sel"); r.more.hidden = false; r.btn.setAttribute("aria-expanded", "true");
+    view.cx = r.c.at_m[0]; view.cy = r.c.at_m[1]; view.s = Math.max(view.s, 4);
+    draw(); drawProfile();
+  }
+
+  /* plan */
+  const cv = document.getElementById("map"), box = document.getElementById("mapbox"), ctx = cv.getContext("2d");
+  const view = { cx: 0, cy: 0, s: 1 };
+  let W = 0, H = 0, dpr = 1;
+  const prof = R.clearance_profile || [];
+  const clearAt = (d) => { let lo = 0, hi = prof.length - 1; if (hi < 0) return null;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (prof[m][0] < d) lo = m + 1; else hi = m; } return prof[lo][1]; };
+  const total = R.route.length_m || 1;
+  const colourFor = (c) => c == null ? css("--muted") : c < 0 ? "#d1495b" : c < margin ? "#e89400" : css("--ink");
+  function fit() {
+    if (!path.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of path) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+    view.cx = (x0 + x1) / 2; view.cy = (y0 + y1) / 2;
+    view.s = Math.min((W - 80) / Math.max(1, x1 - x0), (H - 80) / Math.max(1, y1 - y0));
+  }
+  function size() { dpr = devicePixelRatio || 1; W = box.clientWidth; H = box.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const sx = (x) => (x - view.cx) * view.s + W / 2, sy = (y) => (y - view.cy) * view.s + H / 2;
+  let pending = false;
+  function draw() { if (!pending) { pending = true; requestAnimationFrame(paint); } }
+  function paint() {
+    pending = false;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = css("--map-bg"); ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = 3; ctx.lineCap = "round";
+    for (let i = 1; i < path.length; i++) {
+      ctx.strokeStyle = colourFor(clearAt(path[i].length > 3 ? (path[i - 1][3] + path[i][3]) / 2 : total * i / (path.length - 1)));
+      ctx.beginPath(); ctx.moveTo(sx(path[i - 1][0]), sy(path[i - 1][1])); ctx.lineTo(sx(path[i][0]), sy(path[i][1])); ctx.stroke();
+    }
+    ctx.font = "600 11px " + css("--mono"); ctx.textBaseline = "middle";
+    for (const g of R.gates || []) {
+      const x = sx(g.center_m[0]), y = sy(g.center_m[1]);
+      ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1.5; ctx.strokeRect(x - 5, y - 5, 10, 10);
+      if (view.s > 1) { ctx.fillStyle = css("--muted"); ctx.fillText("G" + g.gate, x + 8, y - 8); }
+    }
+    const edge = css("--m-edge");
+    for (const c of issues.filter(visible).sort((a, b) => a.severity - b.severity)) {
+      const x = sx(c.at_m[0]), y = sy(c.at_m[1]), r = c.severity > 2 ? 6 : 4.5;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = kind(c.kind)[1]; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = edge; ctx.stroke();
+      if (view.s > 2) { ctx.fillStyle = css("--ink"); ctx.fillText(String(c.id), x + r + 3, y); }
+    }
+    const sel = selected && rows.get(selected);
+    if (sel) { ctx.beginPath(); ctx.arc(sx(sel.c.at_m[0]), sy(sel.c.at_m[1]), 13, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = css("--accent"); ctx.stroke(); }
+    const steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000], m = steps.find((v) => v * view.s > 70) || 1000;
+    ctx.fillStyle = css("--ink"); ctx.fillRect(W - 16 - m * view.s, H - 18, m * view.s, 2);
+    ctx.textAlign = "right"; ctx.fillText(m + " m", W - 16, H - 27); ctx.textAlign = "left";
+  }
+  function zoomAt(f, px, py) {
+    const wx = (px - W / 2) / view.s + view.cx, wy = (py - H / 2) / view.s + view.cy;
+    view.s = Math.min(200, Math.max(0.02, view.s * f));
+    view.cx = wx - (px - W / 2) / view.s; view.cy = wy - (py - H / 2) / view.s; draw();
+  }
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); const b = cv.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - b.left, e.clientY - b.top); }, { passive: false });
+  let drag = null, moved = 0;
+  cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); drag = [e.clientX, e.clientY]; moved = 0; cv.classList.add("drag"); });
+  cv.addEventListener("pointermove", (e) => {
+    const b = cv.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+    document.getElementById("readout").textContent = `x ${fmt((px - W / 2) / view.s + view.cx, 0)} · y ${fmt((py - H / 2) / view.s + view.cy, 0)} m`;
+    if (!drag) return;
+    const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; drag = [e.clientX, e.clientY]; moved += Math.abs(dx) + Math.abs(dy);
+    view.cx -= dx / view.s; view.cy -= dy / view.s; draw();
+  });
+  const up = (e) => {
+    if (drag && moved < 5) {
+      const b = cv.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+      let best = null, bd = 14;
+      for (const c of issues) { if (!visible(c)) continue; const d = Math.hypot(sx(c.at_m[0]) - px, sy(c.at_m[1]) - py); if (d < bd) { bd = d; best = c; } }
+      if (best) { select(best.id); rows.get(best.id).el.scrollIntoView({ block: "nearest" }); }
+    }
+    drag = null; cv.classList.remove("drag");
+  };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  document.getElementById("zin").onclick = () => zoomAt(1.5, W / 2, H / 2);
+  document.getElementById("zout").onclick = () => zoomAt(1 / 1.5, W / 2, H / 2);
+  document.getElementById("zfit").onclick = () => { fit(); draw(); };
+
+  /* clearance profile */
+  const pc = document.getElementById("prof"), pctx = pc.getContext("2d");
+  const top = Math.max(margin * 3, 1);
+  document.getElementById("profhint").textContent =
+    `Minimum free distance from the craft surface at each sample, capped at ${fmt(top, 1)} m. Dashed line: margin ${margin} m. Gaps: nothing within the probe length.`;
+  function drawProfile() {
+    const w = pc.clientWidth, h = pc.clientHeight, d = devicePixelRatio || 1;
+    pc.width = Math.round(w * d); pc.height = Math.round(h * d);
+    pctx.setTransform(d, 0, 0, d, 0, 0); pctx.clearRect(0, 0, w, h);
+    const X = (v) => 36 + (w - 48) * v / total, Y = (v) => h - 20 - (h - 34) * Math.max(0, Math.min(top, v) + 0.0) / top;
+    pctx.font = "11px " + css("--mono"); pctx.fillStyle = css("--muted");
+    pctx.fillText("0", 20, Y(0)); pctx.fillText(fmt(top, 1), 4, Y(top) + 4); pctx.fillText(`${fmt(total, 0)} m`, w - 52, h - 4);
+    pctx.setLineDash([4, 4]); pctx.strokeStyle = css("--accent"); pctx.beginPath(); pctx.moveTo(X(0), Y(margin)); pctx.lineTo(X(total), Y(margin)); pctx.stroke();
+    pctx.setLineDash([]); pctx.lineWidth = 1.5;
+    let open = false;
+    for (const [dist, c] of prof) {
+      if (c == null) { open = false; continue; }
+      pctx.strokeStyle = colourFor(c);
+      if (!open) { pctx.beginPath(); pctx.moveTo(X(dist), Y(c)); open = true; } else { pctx.lineTo(X(dist), Y(c)); pctx.stroke(); pctx.beginPath(); pctx.moveTo(X(dist), Y(c)); }
+    }
+    const sel = selected && rows.get(selected);
+    if (sel) { pctx.fillStyle = css("--accent"); pctx.fillRect(X(sel.c.distance_m) - 1, 8, 2, h - 28); }
+  }
+
+  /* notes */
+  const gateRows = (R.gates || []).map((g) => `<li>G${g.gate} ${g.row || ""}: ` +
+    (g.probe_opening_m ? `probes ${fmt(g.probe_opening_m.width, 2)} × ${fmt(g.probe_opening_m.height, 2)} m` : "no probe") +
+    (g.trigger_size_m ? `, trigger ${fmt(g.trigger_size_m.width, 2)} × ${fmt(g.trigger_size_m.height, 2)} m` : "") +
+    ` · ${g.basis}${g.frame_hits ? ` · <b>${g.frame_hits} frame hits</b>` : ""}</li>`).join("");
+  document.getElementById("notes").innerHTML =
+    `<div class="note"><h3>Craft</h3><ul><li>${P.about || ""}</li><li>width ${P.width} m, length ${P.length} m, height ${P.height} m` +
+    `${P.ground_clearance != null ? `, ground clearance ${P.ground_clearance} m` : ""}</li><li>half extents ${P.half_extents_m.join(" / ")} m (${P.half_extents_axes})</li>` +
+    `<li>margin ${margin} m</li></ul></div>` +
+    (gateRows ? `<div class="note"><h3>Gates</h3><ul>${gateRows}</ul></div>` : "") +
+    `<div class="note"><h3>Limits of the check</h3><ul>${(R.limitations || []).map((l) => `<li>${l}</li>`).join("")}</ul></div>` +
+    `<div class="note"><h3>Run it again</h3><ul><li><code>check_route_clearance(source="live", profile="${P.name}")</code> writes this page to ` +
+    `<code>/tmp/uncrashed-clearance/report.html</code>.</li><li>Native: <code>gatebox &lt;file&gt;</code>, <code>sweep &lt;request&gt; &lt;output&gt;</code> (centimetres).</li></ul></div>`;
+
+  new ResizeObserver(() => { size(); draw(); drawProfile(); }).observe(box);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { draw(); drawProfile(); });
+  size(); fit(); refresh();
+})();
+</script>

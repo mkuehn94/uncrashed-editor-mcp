@@ -1,3 +1,4 @@
+from pathlib import Path
 """Saved race-gate sizes survive the native unit-scale spawn used by load_live."""
 import unittest
 from types import SimpleNamespace
@@ -65,5 +66,26 @@ class GateScaleTest(unittest.TestCase):
             result=agent._load('Scaled',move_camera=False)
         self.assertEqual(result['failed_count'],1)
         self.assertIn('gate count changed',result['failed'][0]['error'])
+
+    def test_load_points_editor_at_absolute_map_directory(self):
+        # after a game restart the editor directory is MapEditor/Autosave; a relative setmap lost User/
+        doc=SimpleNamespace(base='LongRange1',order=[],groups={},race={},cam={},display_name='M',instance_count=lambda:0)
+        root=Path('/maps/User')
+        with patch.object(agent,'maps_dir',return_value=root),patch.object(agent,'load_map',return_value=doc),patch.object(agent,'map_info',return_value=dict(base='LongRange1',objects=0,gates=0)),patch.object(agent,'clear',return_value={}),patch.object(agent,'run',return_value=[]),patch.object(agent,'batch',return_value=({},'ok')) as batch:
+            agent._load('Mine',move_camera=False)
+        self.assertEqual(batch.call_args_list[0].args[0][-1],f'setmap {agent._windows_path(root/"Mine")}')
+
+    def test_base_switch_sets_folder_then_reopens_like_the_menu(self):
+        doc=SimpleNamespace(base='BaseBoard',order=[],groups={},race={},cam={},display_name='M',instance_count=lambda:0)
+        root=Path('/maps/User'); calls=[]
+        infos=iter([dict(base='LongRange1',objects=0,gates=0), agent.AgentError('mid-travel'), dict(base='BaseBoard',objects=1,gates=0)])
+        def info():
+            v=next(infos,dict(base='BaseBoard',objects=1,gates=0))
+            if isinstance(v,Exception): raise v
+            return v
+        with patch.object(agent,'maps_dir',return_value=root),patch.object(agent,'load_map',return_value=doc),patch.object(agent,'map_info',side_effect=info),patch.object(agent,'clear',return_value={}),patch.object(agent,'run',side_effect=lambda c,*a:calls.append(c) or []),patch.object(agent,'batch',return_value=({},'ok')),patch.object(agent.time,'sleep'):
+            result=agent._load('Mine',move_camera=False)
+        self.assertTrue(result['base_switched'])
+        self.assertEqual(calls[:2],[f'setmap {agent._windows_path(root/"Mine")}','base BaseBoard'])
 
 if __name__=='__main__':unittest.main()

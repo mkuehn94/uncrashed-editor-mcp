@@ -132,7 +132,12 @@ vertical ray hits at one spot, once per collision object type.
 
 `native/agent.c` builds `native/uncrashed_agent.dll`. The first live call injects it into `Uncrashed-Win64-Shipping.exe` with `native/inject.exe` (same Proton prefix, `LoadLibraryW`). It stays resident and polls `/tmp/uncrashed-agent-cmd.txt`; each command runs on the game thread under a fault guard, so a bad call is reported instead of crashing the game. `agent_unload` frees it, and the next call injects a rebuilt DLL without restarting the game.
 
-The agent calls the track editor's own Blueprint functions through `ProcessEvent`: `Spawn Asset`, `SpawnTrackAsset`, `SaveMap`, `LoadLevel`, `UpdateGateListUI`, and engine functions such as `K2_SetActorLocationAndRotation` and `K2_DestroyActor`. Objects therefore behave and save exactly like ones placed by hand.
+The agent calls the track editor's own Blueprint functions through `ProcessEvent`: `Spawn Asset`, `SpawnTrackAsset`, `SaveMap`, `UpdateGateListUI`, and engine functions such as `K2_SetActorLocationAndRotation` and `K2_DestroyActor`. Objects therefore behave and save exactly like ones placed by hand.
+
+A different base is chosen the way the game's menu does it: the editor level reopens with `?MapEditor=<base row>`
+(native `base`), and the map folder on the game instance survives the travel. Calling the editor pawn's own
+`LoadLevel` on a running editor instead streams the new base in without ever removing the old one, and the
+"Loading map editor" screen never closes.
 
 Game updates: no game address is a constant. `FNamePool` and `GUObjectArray` are found by their shape in `.data`, the GWorld slot by the live `UWorld` it holds, and `ProcessEvent` by the vtable slot that actually computes `Add_IntInt(2, 3) == 5`. Every Blueprint and engine field is looked up by name through reflection. `agent_exec scan` re-resolves and prints what it found. Only an engine upgrade past UE 4.27 would need code changes; the agent then reports "layout mismatch" instead of guessing. Camera control, render-target capture and instance masking use reflected UFunctions/fields on the game thread too.
 

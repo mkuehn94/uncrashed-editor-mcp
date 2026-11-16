@@ -2,7 +2,7 @@
 
 native/agent.c is injected once per game process. It finds the engine's globals by
 shape and calls the track editor's own Blueprint functions through ProcessEvent:
-"Spawn Asset", "SpawnTrackAsset", "SaveMap", "LoadLevel", K2_DestroyActor and the
+"Spawn Asset", "SpawnTrackAsset", "SaveMap", the menu's ?MapEditor=<base> level open, K2_DestroyActor and the
 K2 actor transform setters. Nothing here presses keys or pokes render memory.
 
 This module speaks metres and degrees. The agent speaks centimetres.
@@ -517,8 +517,11 @@ def _save(name: str = "", display_name: str = "") -> dict:
 def _wait_for_base(base: str, timeout: float = 60.0) -> None:
     deadline = time.time() + timeout
     while time.time() < deadline:
-        if map_info().get("base") == base:
-            return
+        try:
+            if map_info().get("base") == base:
+                return
+        except AgentError:
+            pass  # mid-travel: no editor world / pawn for a moment
         time.sleep(0.5)
     raise AgentError(f"the editor did not switch to base level {base}")
 
@@ -563,7 +566,7 @@ def _gate_scale_commands(gates: list, lines: list[str]) -> list[str]:
 def _load(name: str, move_camera: bool = True) -> dict:
     """Replace what the open editor shows with a saved map, without leaving the editor.
 
-    Uses the editor's own pieces: LoadLevel for the base, Spawn Asset for every
+    Uses the editor's own pieces: the menu's ?MapEditor=<base> level open for a different base, Spawn Asset for every
     object, SpawnTrackAsset for the start and checkpoints. The editor's Save button
     then writes back to this map's folder.
     """
@@ -573,9 +576,12 @@ def _load(name: str, move_camera: bool = True) -> dict:
     info = map_info()
     switched = False
     if doc.base and doc.base != info.get("base"):
+        # The base is chosen like the game's menu does it: the editor level reopens with ?MapEditor=<row>
+        # (native "base"). The map folder is set first; the game instance keeps it across the travel.
+        run(f"setmap {_windows_path(maps_dir() / folder)}")
         run(f"base {doc.base}")
         _wait_for_base(doc.base)
-        time.sleep(1.0)  # the base level streams in; anything it brought along is cleared next
+        time.sleep(2.0)  # fresh editor world: let BeginPlay and the base streaming settle before clearing
         switched = True
     cleared = clear()
 
@@ -604,7 +610,9 @@ def _load(name: str, move_camera: bool = True) -> dict:
         commands.append(f"gate {row} {float(tr['X']):.2f} {float(tr['Y']):.2f} {float(tr['Z']):.2f} {pitch:.4f} {yaw:.4f} {roll:.4f}")
     if checkpoints:
         commands.append(f"laps {int(doc.race.get('Laps') or 1)}")
-    commands.append(f"setmap {folder}")
+    # Absolute, like save: a relative folder resolves against the editor's current directory, which after a
+    # game restart is MapEditor/Autosave -> MapEditor/<folder> (no User/): sidecars, journal and Save miss the map.
+    commands.append(f"setmap {_windows_path(maps_dir() / folder)}")
 
     results, summary = batch(commands, timeout=max(120.0, len(commands) * 0.03), quiet=True)
     failures = [

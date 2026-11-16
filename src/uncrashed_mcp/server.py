@@ -14,7 +14,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.utilities.types import Image
 
-from . import agent, assemblies, collide, environment, groups, managed
+from . import agent, assemblies, clearance, collide, consolidate, environment, groups, managed, performance, scenery
 from .catalog import load_catalog
 from .live import capture_view as live_capture_view
 from .live import move_camera as live_move_camera
@@ -45,7 +45,7 @@ Agent commands (one per line; centimetres and degrees; <actor> is a hex address 
   clear                                  delete everything placed (asks nothing: be sure)
   mapinfo                                open map folder, title, base, object and gate counts
   save [folder|-] [title]                save with the game's own SaveMap ('-' = the open folder)
-  setmap <folder> | base <row>           retarget the save folder | switch the base level
+  setmap <folder> | base <row>           retarget the save folder | reopen the editor on another base (clears the scene)
   floating [gap] [limit] [x0 y0 x1 y1]   objects hovering more than gap above anything
   collide <file> [x0 y0 x1 y1] [gap]     collision facts of every placed object into a file (check_collisions reads them)
   trace x y z_from z_to                  what a vertical ray hits, once per collision object type
@@ -53,6 +53,10 @@ Agent commands (one per line; centimetres and degrees; <actor> is a hex address 
   drop <actor|last> [step] [max] [embed] [dry]   rest it exactly on what is under it (lifts it if sunk in); last = the last spawn
   cells <cell_m> <rows|!rows|*> [zmax_m] occupancy grid (metres here), comma-separated row filter
   console <cmd> | cvar <name> | raise [off]   console command | read a console variable | game window on top
+  collision query|on|off|flythrough|nophysics <sel> [preview]   sel: actor=<hex> group=<tag> row=<row> box=... (set_collision wraps it)
+  collision status | channels            override counters | the drone's object channels (run while flying)
+  perf <file> [x0 y0 x1 y1] | rowflags <file> | frametime   performance scan | row data flags | frame timing
+  gatebox <file> [channel] | sweep <request> <output>       gates + collision components | swept craft volume
   debug: ping scan resolve names objects funcs func props rows fname read write call
 Example: spawn NewRow_1 1500 -2000 0 0 90 0 1 1 1   -> a container at x=15 m, y=-20 m, turned 90 degrees.
 """.strip()
@@ -93,6 +97,33 @@ not full ground-footprint coverage. Continue environment checks; do not call con
 
 Replies are short by default; ask for more lines only when needed. Pivot vs. bounds: spawn takes the pivot;
 get_assets gives origin_cm / extent_cm so the bottom of a mesh can be put on the ground.
+
+Non-colliding scenery: set_collision (preview first) switches placed objects selected by actors, group, row or box
+to flythrough (drone/vehicle channels ignored, no rigid-body contact; traces and audits still see the object), off
+(no collision at all), nophysics, or back to on (exact restore); physics_off/physics_on are live-only simulation
+toggles. Gates only with force. persist=True writes UncrashedMCP.collision and the resident DLL re-applies it after
+reloads while the editor is open, but the stock game without the DLL ignores it: for maps other people fly, prefer
+non-colliding catalogue rows (search_assets collision='noncolliding', noncolliding_alternatives). collision_state
+reports per-object and per-component collision facts. undo_collision reverts using the transaction id. Which
+channel the drone collides on is unverified: run agent 'collision channels' while flying and pass channels=[...] if
+it is not Pawn/PhysicsBody/Vehicle. Object rules follow catalogue row plus pivot (2 cm), so moving an object
+detaches it from its rule; group rules survive moves. Keep UncrashedMCP.collision with the map.
+
+For big maps run check_performance (offline with name=<saved map>, or live on the open editor; measure=True samples
+frame time, optionally at camera poses). Its budgets are heuristic UE4 defaults, so override them. Live grading
+counts placed objects only; *_base figures are informational. To cut object count, consolidate_scenery merges edge-
+to-edge plain-box triplanar tiles (ground, Concrete Wall01/Floor01/Column...) into scaled copies. Preview first,
+then apply with preview=False on a saved map (the largest merge goes first as a canary, and each replacement is
+verified and auto-undone on mismatch). Undo with undo_edit per returned transaction, newest first. Non-triplanar
+rows are never merged; thin them by hand.
+
+For flyability use check_route_clearance. It sweeps the craft volume along a smooth line through the race gates
+(source='live' or 'map:<name>') or through waypoints (source='points'). Profiles: 5inch, tiny_whoop, cinewhoop,
+7inch, fixed_wing, or car/truck for roads; dims_m and margin_m customise them. It reports collisions, gate openings
+too small (probed from each gate's centre), tight spots, low ceilings or ground, and road corridor width, each with
+a move_camera pose. Overlap-only triggers and flythrough objects are not obstacles. The collision channel defaults
+to Pawn, which is unverified for the drone; pass channel= (e.g. PhysicsBody, game3, '16') to change it. It is a
+geometric check of a spline, not a flight test.
 
 {VERBS}
 """.strip()
@@ -161,22 +192,26 @@ def search_assets(
     tag: str = "",
     limit: int = 20,
     include_hidden: bool = True,
+    collision: str = "",
 ) -> str:
     """Find editor assets by name, material, tag or id.
 
     Categories include Wall, Big structure, Foliage, Big_assets, Small_assets, Basic shape.
     Tags include building, house, tree, vehicle, ground, fence. Decals are omitted unless category is Decals.
     hidden=true means the picker hides the row; the JSON can still spawn it. size_m is the unscaled mesh.
+    collision='noncolliding' keeps rows whose game table 'Collision?' flag is false (stock-reliable, no DLL
+    needed): mostly neon signs; pass category='Decals' as well for decals. 'colliding' the opposite; empty = all.
     """
     catalog = _catalog()
     rows = catalog.search(
         query=query,
         category=category or None,
         tag=tag or None,
-        limit=max(1, min(limit, 50)),
+        limit=len(catalog.assets) if collision else max(1, min(limit, 50)),
         include_hidden=include_hidden,
         include_decals=category.lower() == "decals",
     )
+    rows = scenery.collision_filter(rows, collision)[:max(1, min(limit, 50))]
     return _dump({"count": len(rows), "assets": [row.public() for row in rows]})
 
 
@@ -660,6 +695,190 @@ def check_assembly(name: str, tolerance: float = .05, foundation_tolerance: floa
     """
     try:
         return _dump(assemblies.check_assembly(_catalog(),name,tolerance,foundation_tolerance,min_anchor_coverage,top))
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def set_collision(mode: str = 'flythrough', actors: list[str] | None = None, group: str = '', row: str = '',
+                  box_min: list[float] | None = None, box_max: list[float] | None = None,
+                  channels: list[str] | None = None, keep_body: bool = False, force: bool = False,
+                  preview: bool = True, persist: bool = True, top: int = 30) -> str:
+    """Make placed scenery non-colliding (live, resident DLL): on | nophysics | flythrough | off,
+    plus live-only physics_off / physics_on (toggle simulation only, leave flythrough/off alone; persist=False).
+
+    Exactly one selector: actors (hex handles, max 8192), group (editor group tag), row (catalogue id, every
+    instance) or box_min/box_max (XYZ metres, object pivot inside); group/row/box have no size cap.
+    Never base landscape/foliage. Race gates are checkpoints: skipped unless force=True. flythrough
+    ignores channels (default pawn, physicsbody, vehicle; names, engineN, gameN or 0..31) and drops
+    rigid-body collision (keep_body=True keeps it); query collision stays, so traces/audits/editor
+    picking still see it. off disables all collision (traces miss it). nophysics only stops simulation.
+    on restores the exact recorded originals. Preview by default. persist=True (saved map required)
+    writes portable rules to UncrashedMCP.json + UncrashedMCP.collision and the resident DLL re-applies
+    them after every map reload while the editor is open; the STOCK GAME WITHOUT THE DLL IGNORES THEM
+    (use noncolliding_alternatives / search_assets(collision='noncolliding') for stock-reliable scenery).
+    Returns a transaction id for undo_collision. Drone channel unverified: run agent 'collision channels'
+    while flying.
+    """
+    try:
+        return _dump(scenery.set_collision(mode, actors, group, row, box_min, box_max, channels, keep_body,
+                                           force, preview, persist, top))
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def collision_state(actors: list[str] | None = None, group: str = '', row: str = '',
+                    box_min: list[float] | None = None, box_max: list[float] | None = None,
+                    channels: list[str] | None = None, top: int = 30, components: bool = True) -> str:
+    """Read-only collision facts. No selector: DLL status (records, rules, rules matching nothing because
+    objects moved, gone/replaced counters), persisted rules. With a selector: per object mode/owner,
+    keep_body, actor collision, simulating, and per component CollisionEnabled, object channel, profile and
+    responses (pawn, physicsbody, vehicle, visibility, camera, ...); 'blocks' lists queried channels it still blocks.
+    """
+    try:
+        return _dump(scenery.collision_state(actors, group, row, box_min, box_max, channels, top, components))
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def undo_collision(transaction: str, preview: bool = True) -> str:
+    """Preview/apply the inverse of a set_collision transaction (edit_history lists them).
+
+    Restores the previous persisted rules (refuses if rules changed since) and replays the previous
+    per-object modes (including keep_body) for the journaled objects that are still loaded; reports
+    how many are missing. A live-only transaction whose objects are all gone is refused (nothing to undo).
+    """
+    try:
+        return _dump(scenery.undo_collision(transaction, preview))
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def noncolliding_alternatives(row: str, limit: int = 5) -> str:
+    """Stock-reliable non-colliding catalogue rows resembling `row` (Collision? flag false in the game's
+    table: works without the DLL and for every player). Often none exist: the catalogue's non-colliding
+    rows are decals and neon signs; then use set_collision.
+    """
+    try:
+        return _dump(scenery.lookalikes(_catalog(), row, limit))
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def check_performance(
+    name: str = '',
+    x0: float | None = None, y0: float | None = None,
+    x1: float | None = None, y1: float | None = None,
+    budgets: dict | None = None,
+    measure: bool = False,
+    poses: list[dict] | None = None,
+    duration: float = 1.5,
+    cell: float = 50,
+    top: int = 10,
+) -> str:
+    """Performance budget check for big maps. Read-only; metres.
+
+    name = a saved map folder (or a .json path) scans the file offline: counts per row / category / kind, Blueprint
+    objects, LOD0 triangle estimate, densest grid cells (cell m) with a move_camera pose each, top rows by count and
+    by triangles, and how many objects consolidate_scenery could merge. Without name it scans the open editor live:
+    every loaded actor, its mesh / instanced components, visible lights (movable, shadow casting), shadow casters,
+    never-culled primitives, physics, collision, whether any placed object owns an instanced component, and the
+    renderer's dynamic-instancing cvar. Live budgets grade placed objects only; *_base figures (landscape, foliage,
+    base map) are informational. x0 y0 x1 y1 limit the scan to a region.
+    budgets overrides heuristic defaults (NOT measured Uncrashed limits; listed in the reply): a number sets warn and
+    high = 2.5 x warn, e.g. {"placed_objects": 6000}; a dict sets either or both, e.g. {"dynamic_lights": {"warn": 8,
+    "high": 20}} (warn alone raises high to at least 2.5 x warn). cell_objects / cell_triangles are per 50 m cell and
+    scale with cell area unless overridden.
+    measure=True (live only) also samples frame time for `duration` seconds, at each of up to 8 poses
+    [{x,y,z,yaw,pitch}] (camera released afterwards), and reports avg / p95 ms with VSync / MaxFPS / background notes.
+    Returns warnings by severity with concrete advice; full JSON under /tmp/uncrashed-perf/.
+    """
+    try:
+        region = environment.validate_region(x0, y0, x1, y1)
+        report = performance.check_performance(_catalog(), name=name, region=region, budget=budgets, measure=measure,
+                                               poses=poses, duration=duration, cell=cell, top=max(1, min(int(top), 50)))
+        return _dump(report)
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def consolidate_scenery(
+    name: str = '',
+    x0: float | None = None, y0: float | None = None,
+    x1: float | None = None, y1: float | None = None,
+    rows: list[str] | None = None,
+    preview: bool = True,
+    tolerance: float = 0.02,
+    max_size: float = 64,
+    limit: int = 20,
+) -> str:
+    """Merge edge-to-edge runs of the same plain-box triplanar row into fewer scaled copies. Preview by default.
+
+    The save format has no instancing, so fewer bigger objects are the only persistent saving. Only rows that the
+    catalogue marks triplanar (texture is world-projected, so scaling keeps its density) AND whose mesh hull is a
+    plain box (ground tiles, Concrete Wall01 / Floor01 / Column, roof, grid net) are merged; slopes, corners, holed or
+    windowed pieces and every non-triplanar row are never merged. Tiles must share row, group, rotation, scale and
+    plane, and sit on one lattice within tolerance (m); merged copies are at most max_size m per side.
+    name = saved map (preview only). Without name it plans on the open editor; preview=False deletes the originals
+    and spawns the replacements through the journaled group edit: the largest-scale merge goes alone first as a
+    canary, then one transaction per <=4000 commands. Every replacement's pivot/scale is checked against the request;
+    a mismatch undoes that transaction and stops with an error. Returns transaction ids: undo with
+    undo_edit(transaction, preview=False), newest first. Saved map required for apply (journal sidecar). Also lists
+    high-count rows that cannot be merged, for manual thinning. No auto-save.
+    """
+    try:
+        region = environment.validate_region(x0, y0, x1, y1)
+        return _dump(consolidate.consolidate_scenery(_catalog(), name=name, region=region, rows=rows, preview=preview,
+                                                     tolerance=tolerance, max_size=max_size, limit=limit))
+    except Exception as exc:
+        return _err(exc)
+
+
+@mcp.tool()
+def check_route_clearance(
+    source: str = "live",
+    points: list[list[float]] | None = None,
+    profile: str = "5inch",
+    margin_m: float | None = None,
+    spacing_m: float = 1.0,
+    dims_m: list[float] | None = None,
+    kind: str | None = None,
+    channel: str = "Pawn",
+    probe_m: float = 10.0,
+    directions: int = 16,
+    closed: bool | None = None,
+    laps: int | None = None,
+    align_gates: bool = True,
+    ignore_start_m: float = 0.0,
+    max_issues: int = 20,
+) -> str:
+    """Route clearance for a craft along the race line or waypoints. Read-only; metres.
+
+    source: 'live' (race gates in the open editor), 'map:<name>' (saved Race: start + checkpoints, laps),
+    or 'points' with points=[[x,y,z],...] (ground mode accepts [x,y]: top-most non-foliage, non-gate surface).
+    A centripetal Catmull-Rom spline through gate openings (trigger-volume centres; lead-in/out along
+    each gate normal unless align_gates=False), sampled every spacing_m, closed when laps>1 (or closed=True).
+    profile: tiny_whoop, cinewhoop, 5inch, 7inch, fixed_wing (air) or car, truck (ground; path draped on the
+    surface at ride height); dims_m=[width,length,height] and margin_m override. Dimensions are echoed.
+    The craft box is swept between samples against real collision; probes measure free space in
+    `directions` horizontal directions + up/down up to probe_m. Gate openings are probed from each gate's exact centre.
+    channel: the collision channel the craft is assumed to collide as: Pawn, PhysicsBody, Vehicle, ...,
+    game1..game18, engine1..engine6 or an index '0'..'31'. Components that only overlap / ignore it (gate checkpoint
+    triggers, flythrough objects) are not obstacles; collision-disabled objects are invisible. Reports collisions,
+    gate frame hits, gate openings smaller than craft + 2*margin, tight spots, low ceiling / ground, and for ground
+    mode corridor width / narrow corridor / ground contact, each with route distance, obstacle row and a move_camera
+    pose. Full JSON + HTML plan in /tmp/uncrashed-clearance/.
+    """
+    try:
+        return _dump(clearance.check_route_clearance(
+            source=source, points=points, profile=profile, margin_m=margin_m, spacing_m=spacing_m, dims_m=dims_m,
+            kind=kind, channel=channel, probe_m=probe_m, directions=directions, closed=closed, laps=laps,
+            align_gates=align_gates, ignore_start_m=ignore_start_m, max_issues=max_issues, catalog=_catalog()))
     except Exception as exc:
         return _err(exc)
 
