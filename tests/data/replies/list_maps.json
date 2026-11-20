@@ -1,0 +1,173 @@
+{
+ "maps_dir": "/home/user/.local/share/Steam/steamapps/compatdata/1682970/pfx/drive_c/users/steamuser/AppData/Roaming/Uncrashed/76561190000000000/MapEditor/User",
+ "maps": [
+  {
+   "folder": "Map_A",
+   "name": "Map A",
+   "base": "BaseLandscape02",
+   "track": false,
+   "created": 1795113984,
+   "bytes": 13781342
+  },
+  {
+   "folder": "Map_B",
+   "name": "Map B",
+   "base": "BaseLandscape02",
+   "track": false,
+   "created": 1794854400,
+   "bytes": 868
+  },
+  {
+   "folder": "Map_C",
+   "name": "Map C",
+   "base": "LongRange1",
+   "track": false,
+   "created": 1794314624,
+   "bytes": 1120316
+  },
+  {
+   "folder": "Map_D",
+   "name": "MAP D | Night Run",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1794150675,
+   "bytes": 680702
+  },
+  {
+   "folder": "Map_E",
+   "name": "2049",
+   "base": "BaseLandscape04",
+   "track": true,
+   "created": 1793984640,
+   "bytes": 12675707
+  },
+  {
+   "folder": "Map_F",
+   "name": "MAP F | Day Run",
+   "base": "BaseLandscape04",
+   "track": true,
+   "created": 1793984384,
+   "bytes": 12675707
+  },
+  {
+   "folder": "Map_G",
+   "name": "Map G",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793438720,
+   "bytes": 5390496
+  },
+  {
+   "folder": "Map_H",
+   "name": "Map H",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793379072,
+   "bytes": 5061771
+  },
+  {
+   "folder": "Map_I",
+   "name": "Map I",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793360000,
+   "bytes": 4465547
+  },
+  {
+   "folder": "Map_J",
+   "name": "Map J",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793342080,
+   "bytes": 4297043
+  },
+  {
+   "folder": "Map_K",
+   "name": "Map K",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793307904,
+   "bytes": 4454669
+  },
+  {
+   "folder": "Map_L",
+   "name": "Map L",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793287808,
+   "bytes": 3040358
+  },
+  {
+   "folder": "Map_M",
+   "name": "Map M",
+   "base": "LongRange1",
+   "track": true,
+   "created": 1793265152,
+   "bytes": 970911
+  },
+  {
+   "folder": "Map_N",
+   "name": "Map N",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1793123712,
+   "bytes": 5268820
+  },
+  {
+   "folder": "Map_O",
+   "name": "Map O",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1793090048,
+   "bytes": 1015107
+  },
+  {
+   "folder": "Map_P",
+   "name": "Map P",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1793047680,
+   "bytes": 1014947
+  },
+  {
+   "folder": "Map_Q",
+   "name": "Map Q",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1792998802,
+   "bytes": 302428
+  },
+  {
+   "folder": "Map_R",
+   "name": "Map R",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1792998297,
+   "bytes": 266770
+  },
+  {
+   "folder": "Map_S",
+   "name": "Map S",
+   "base": "BaseBoard",
+   "track": true,
+   "created": 1792956822,
+   "bytes": 2459247
+  },
+  {
+   "folder": "Map_T",
+   "name": "Map T",
+   "base": "BaseBoard",
+   "track": false,
+   "created": 1792950523,
+   "bytes": 11290
+  },
+  {
+   "folder": "Map_U",
+   "name": "Map U",
+   "base": "BaseBoard",
+   "track": false,
+   "created": 1792950342,
+   "bytes": 3020
+  }
+ ]
+}

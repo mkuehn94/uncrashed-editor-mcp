@@ -1,17 +1,17 @@
 # Background views and managed editing
 
 Tool-level units are metres/degrees. Native commands use centimetres/degrees.
-Restart an already-running MCP server after upgrading; rebuild/hot-load the DLL too.
+The CLI picks up upgrades on the next call; restart an already-running MCP server; rebuild/hot-load the DLL too.
 
 ## Camera and screenshots
 
 `move_camera` now uses game-thread UFunctions and reflected editor state, not
-`/proc/<pid>/mem` writes or a spinning helper process. `hold=True` temporarily
+`/proc/<pid>/mem` writes or a spinning helper process. `hold=True` (`--hold`) temporarily
 disables editor camera movement; `release_camera` restores its prior enable state.
 A 120-second native watchdog releases abandoned holds. Pawn changes/DLL unload
 release them too. The last pose stays.
 
-`capture_view` defaults to `backend="engine", foreground=False`:
+`capture_view` defaults to `backend="engine", foreground=False` (`--backend engine`, no `--foreground`):
 
 - A temporary, untagged `SceneCapture2D` actor renders into a dedicated sRGB render
   target. It is not an editor asset and is destroyed after capture.
@@ -32,7 +32,7 @@ release them too. The last pose stays.
 `backend="window"` captures current editor pixels and includes UI. It never moves
 or focuses the camera/window by default, but **occlusion, minimization and other
 desktops can produce stale/obscured pixels**. Pixel variance cannot prove freshness.
-Only explicit `backend="window", foreground=True` permits activation, with previous
+Only explicit `backend="window", foreground=True` (`--backend window --foreground`) permits activation, with previous
 focus restored afterward. That option can visibly switch desktops. No backend
 falls back to it automatically.
 
@@ -84,7 +84,7 @@ quaternion, not the readback value. Conflicts retain originals and refuse DLL un
 rather than silently abandoning restoration data.
 
 GPU-only grass cannot be individually cleared through this API. Preview reports
-unavailable sources. Apply refuses unless `allow_partial=true` explicitly accepts
+unavailable sources. Apply refuses unless `allow_partial=true` (`--allow_partial`) explicitly accepts
 supported-source-only clearing. Newly streamed unavailable sources remain reported;
 never interpret a configured zone as proof that every rendered blade is absent.
 

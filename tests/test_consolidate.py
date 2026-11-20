@@ -169,6 +169,7 @@ class PlanTests(unittest.TestCase):
             done = con.consolidate_scenery(CAT, preview=False)
         self.assertEqual(done['transactions'], ['0' * 31 + '1'])
         self.assertEqual(done['verified'], 1)
+        self.assertEqual(done['undo'], 'undo_edit <transaction> with apply (preview off) for each id, newest first')
         info, root, before, affected, commands, label = applied[0]
         self.assertEqual(affected, ['-'])
         self.assertEqual(len(commands), 4)
@@ -187,6 +188,16 @@ class PlanTests(unittest.TestCase):
         with stack, self.assertRaisesRegex(RuntimeError, r'did not come out as requested.*requested_scale.*was undone'):
             con.consolidate_scenery(CAT, preview=False)
         self.assertEqual(undone, ['0' * 31 + '1'])
+
+    def test_a_failed_auto_undo_names_the_transaction_without_call_syntax(self):
+        objs = [tile(i, 400 * i, 0) for i in range(3)]
+        stack, applied, undone, _ = self._apply_env([{'session': 's', 'objects': objs}], after=lambda commands: [])
+        tx = '0' * 31 + '1'
+        with stack, patch.object(con.groups, 'undo_edit', side_effect=RuntimeError('agent gone')), \
+                self.assertRaises(RuntimeError) as caught:
+            con.consolidate_scenery(CAT, preview=False)
+        self.assertIn(f'AUTO-UNDO FAILED (agent gone); run undo_edit {tx} with apply (preview off);', str(caught.exception))
+        self.assertNotIn('preview=False', str(caught.exception))
 
     def test_canary_then_chunks_resnapshot_and_partial_failure(self):
         objs = [tile(3 * r + i, 400 * i, 2000 * r, scale=(1, 1, 1)) for r in range(3) for i in range(3)]
@@ -275,7 +286,8 @@ class SourceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'm.json'
             path.write_text(json.dumps({'S_AssetsTransform': []}))
-            with self.assertRaisesRegex(ValueError, 'preview-only'):
+            with self.assertRaisesRegex(ValueError, '^a saved map file is preview-only; load_live it, then apply on '
+                                                    'the open editor without a name$'):
                 con.consolidate_scenery(CAT, name=str(path), preview=False)
             with patch.object(con, 'REPORT_DIR', Path(tmp)):
                 self.assertEqual(con.consolidate_scenery(CAT, name=str(path))['considered'], 0)

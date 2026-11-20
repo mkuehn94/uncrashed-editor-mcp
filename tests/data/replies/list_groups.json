@@ -1,0 +1,86 @@
+{
+ "group_count": 5,
+ "groups": [
+  {
+   "name": "-",
+   "objects": 1,
+   "pivot_bounds_m": {
+    "min": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "max": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  {
+   "name": "garage",
+   "objects": 1,
+   "pivot_bounds_m": {
+    "min": [
+     90.0,
+     -8.0075,
+     0.0
+    ],
+    "max": [
+     90.0,
+     -8.0075,
+     0.0
+    ]
+   }
+  },
+  {
+   "name": "house.floor",
+   "objects": 1,
+   "pivot_bounds_m": {
+    "min": [
+     126.505,
+     -43.1025,
+     0.05
+    ],
+    "max": [
+     126.505,
+     -43.1025,
+     0.05
+    ]
+   }
+  },
+  {
+   "name": "house.walls",
+   "objects": 2,
+   "pivot_bounds_m": {
+    "min": [
+     123.505,
+     -44.1025,
+     0.105
+    ],
+    "max": [
+     129.505,
+     -44.1025,
+     0.105
+    ]
+   }
+  },
+  {
+   "name": "trees",
+   "objects": 2,
+   "pivot_bounds_m": {
+    "min": [
+     -33.0,
+     20.0,
+     0.0
+    ],
+    "max": [
+     -30.0,
+     24.005,
+     0.0
+    ]
+   }
+  }
+ ],
+ "truncated": false
+}

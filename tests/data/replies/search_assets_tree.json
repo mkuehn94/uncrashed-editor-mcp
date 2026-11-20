@@ -1,0 +1,309 @@
+{
+ "count": 16,
+ "assets": [
+  {
+   "id": "NewRow_34",
+   "name": "Alder Spring 01b",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    15.14,
+    16.56,
+    22.83
+   ],
+   "long_axis": "y",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_166",
+   "name": "Amur Cork04",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    3.1,
+    3.92,
+    4.8
+   ],
+   "long_axis": "y",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_168",
+   "name": "Elm09",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    7.25,
+    5.21,
+    9.5
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_169",
+   "name": "Elm13",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    14.47,
+    15.75,
+    14.2
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_265",
+   "name": "LSC DD Palm A",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    9.57,
+    9.86,
+    19.68
+   ],
+   "long_axis": "y",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_267",
+   "name": "Maple08",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    5.72,
+    6.0,
+    6.76
+   ],
+   "long_axis": "y",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_78",
+   "name": "Oak Spring 01a",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    25.13,
+    25.76,
+    26.52
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_171",
+   "name": "Weeping Willow01",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    14.99,
+    16.25,
+    13.63
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_269",
+   "name": "maple Tree A",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    5.72,
+    6.0,
+    6.76
+   ],
+   "long_axis": "y",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_281",
+   "name": "pine Tree B",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    7.68,
+    7.46,
+    17.38
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_279",
+   "name": "pine03",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    5.48,
+    5.02,
+    11.14
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_280",
+   "name": "pine05",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    5.74,
+    6.19,
+    24.18
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_163",
+   "name": "vd3ffgp lod2",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    2.84,
+    2.11,
+    1.49
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_167",
+   "name": "vecqdebqx lod2",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    0.84,
+    0.79,
+    0.79
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_170",
+   "name": "wfcoehy LOD2",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    1.57,
+    1.14,
+    0.6
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_179",
+   "name": "yd1gfbjab LOD2",
+   "category": "Foliage",
+   "kind": "mesh",
+   "tags": [
+    "tree"
+   ],
+   "hidden": false,
+   "size_m": [
+    11.09,
+    9.49,
+    31.66
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  }
+ ]
+}

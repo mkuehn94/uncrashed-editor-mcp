@@ -1,0 +1,110 @@
+{
+ "mode": "flythrough",
+ "preview": false,
+ "persist": true,
+ "matched": 4,
+ "would_change": 3,
+ "gates": 1,
+ "gates_skipped": 1,
+ "channels": [
+  "pawn",
+  "physicsbody",
+  "vehicle"
+ ],
+ "objects": [
+  {
+   "actor": "17e63a10",
+   "row": "NewRow_164",
+   "group": "trees",
+   "location_m": [
+    -30.0,
+    20.5,
+    0.12
+   ],
+   "gate": false,
+   "mode": "on",
+   "owner": "-",
+   "channels": [],
+   "to": "flythrough",
+   "change": true,
+   "ok": true,
+   "keep_body": false
+  },
+  {
+   "actor": "17e63a20",
+   "row": "NewRow_164",
+   "group": "trees",
+   "location_m": [
+    -33.0,
+    24.5,
+    0.1
+   ],
+   "gate": false,
+   "mode": "on",
+   "owner": "-",
+   "channels": [],
+   "to": "flythrough",
+   "change": true,
+   "ok": true,
+   "keep_body": false
+  },
+  {
+   "actor": "17e63a30",
+   "row": "NewRow_788",
+   "group": "village",
+   "location_m": [
+    12.35,
+    -44.1,
+    10.5
+   ],
+   "gate": false,
+   "mode": "on",
+   "owner": "-",
+   "channels": [],
+   "to": "flythrough",
+   "change": true,
+   "ok": true,
+   "keep_body": false
+  },
+  {
+   "actor": "17e63a40",
+   "row": "NewRow_7",
+   "group": "-",
+   "location_m": [
+    0.0,
+    0.0,
+    3.0
+   ],
+   "gate": true,
+   "mode": "on",
+   "owner": "-",
+   "channels": [],
+   "to": "flythrough",
+   "skipped": "gate",
+   "change": false,
+   "ok": true,
+   "keep_body": false
+  }
+ ],
+ "warnings": [
+  "Live-only: the stock game without the resident DLL ignores UncrashedMCP.collision; everyone else (and a game started without the agent) gets normal collision. Use non-colliding catalogue rows for stock-reliable scenery.",
+  "Which channel the drone / vehicles collide on is not verified: default Pawn+PhysicsBody+Vehicle. Run agent \"collision channels\" while flying and pass channels=[...] if the drone uses another object channel.",
+  "Object rules match catalogue row + pivot within 2 cm: moving an object detaches it from its rule (collision_state reports unmatched rules). Group rules survive moves.",
+  "flythrough keeps query collision (object type, Visibility, Camera), so traces, audits and editor picking still see the object; off removes it from every trace too.",
+  "1 race gates are checkpoints and were left alone; pass force=True to include them."
+ ],
+ "rules_before": 0,
+ "rules_after": 2,
+ "sidecar": "/maps/Map_C/UncrashedMCP.json",
+ "runtime_config": "/maps/Map_C/UncrashedMCP.collision",
+ "native": [
+  "collision refreshed adopt=group=trees rules=3 records=118 unmatched_rules=1 config=1 base_checked=1"
+ ],
+ "transaction": "94427fe8a49f4676be93accc6e98eb7e",
+ "journal": "/maps/m/UncrashedMCP.history/94427fe8a49f4676be93accc6e98eb7e.json",
+ "undo": "undo_collision with this transaction id",
+ "changed": true,
+ "verified": false,
+ "mismatched": [],
+ "missing_after": 1
+}

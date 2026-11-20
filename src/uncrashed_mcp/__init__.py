@@ -1,3 +1,3 @@
-"""MCP for Uncrashed FPV Simulator track-editor maps."""
+"""CLI and optional MCP server for Uncrashed FPV Simulator track-editor maps."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

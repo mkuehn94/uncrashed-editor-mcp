@@ -11,15 +11,20 @@ This module speaks metres and degrees. The agent speaks centimetres.
 from __future__ import annotations
 
 import fcntl
+import glob
+import itertools
 import json
 import math
 import os
+import secrets
 import threading
 from contextlib import contextmanager
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
+from typing import Callable
 
 from .geom import quat_rotator, rotator_from_quat
 from .mapfile import list_user_maps, load_map, sanitize_name
@@ -29,14 +34,58 @@ CMD = Path("/tmp/uncrashed-agent-cmd.txt")
 OUT = Path("/tmp/uncrashed-agent-out.txt")
 LOG = Path("/tmp/uncrashed-agent.log")
 SEQ = Path("/tmp/uncrashed-agent-seq.txt")
+# Name pattern only: every batch call writes its own <stem>.<pid>.<n>.<token><suffix> next to it (batch_files()).
 BATCH = Path("/tmp/uncrashed-agent-batch.txt")
-BATCH_WINDOWS = "Z:\\tmp\\uncrashed-agent-batch.txt"
+BATCH_KEEP = 86400.0  # seconds a batch file whose job may still be pending is left alone
+# Older server processes flock this same file; never unlink or rename it.
+LOCK = Path(os.environ.get("UNCRASHED_LOCK") or "/tmp/uncrashed-agent.lock")
 DLL_NAME = "uncrashed_agent.dll"
 START_GATE = "STARTGATE"
 
 
 class AgentError(RuntimeError):
-    pass
+    """A live agent call failed. Tell the cases apart by type, never by message text:
+
+    AgentNotSent: the failing call wrote nothing to the agent.
+    AgentTimeout: the command was sent and no reply arrived in time; it may still run.
+    AgentError itself with reply set: the agent answered and reported a failure or a caught fault.
+    AgentError itself with reply None: sent, but no reply can come any more (agent unloaded, game
+    closed), or a check of this module failed around the commands it sent.
+    """
+
+    reply: dict | None = None  # the _execute() reply when the agent itself answered with a failure
+
+
+class AgentNotSent(AgentError):
+    """The failing call sent nothing: offline mode, lock or agent busy, game not running, injection failed,
+    empty command, or the wait was given up (on_lock_wait). An operation of several commands may have sent
+    earlier ones: sent_count tells."""
+
+
+class AgentTimeout(AgentError):
+    """The command was sent but no reply arrived in time: it may still run."""
+
+
+def _refuse_offline() -> None:
+    if os.environ.get("UNCRASHED_OFFLINE"):
+        raise AgentNotSent("offline mode (UNCRASHED_OFFLINE set): live agent calls are disabled")
+
+
+def _note(text: str) -> None:
+    """A stderr line of this module. A closed stderr must never abort a wait or change the exit code."""
+    if sys.stderr is None:  # started with fd 2 closed: print(file=None) would write to stdout, into the result
+        return
+    try:
+        print(text, file=sys.stderr, flush=True)
+    except OSError:
+        try:  # the reader is gone: keep the interpreter's exit-time flush of the unwritten line from failing too
+            null = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(null, sys.stderr.fileno())
+            os.close(null)
+        except (OSError, ValueError, AttributeError):
+            pass
+    except (ValueError, RuntimeError, AttributeError):  # closed or missing stream; re-entered from a signal handler
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +96,7 @@ class AgentError(RuntimeError):
 def _pid() -> int:
     pid = game_pid()
     if pid is None:
-        raise AgentError("Uncrashed is not running")
+        raise AgentNotSent("Uncrashed is not running")
     return pid
 
 
@@ -81,6 +130,7 @@ def loaded(pid: int | None = None) -> bool:
 
 def ensure_agent() -> None:
     """Inject the agent into this game process if it is not there yet."""
+    _refuse_offline()
     pid = _pid()
     if loaded(pid):
         return
@@ -89,17 +139,21 @@ def ensure_agent() -> None:
     wine, prefix = _wine()
     for needed in (dll, inject, wine):
         if not needed.is_file():
-            raise AgentError(f"missing {needed}")
+            raise AgentNotSent(f"missing {needed}")
     env = os.environ.copy()
     env.setdefault("DISPLAY", ":0")
     env["WINEPREFIX"] = str(prefix)
-    subprocess.run([str(wine), _windows_path(inject), _windows_path(dll)], env=env, check=True, capture_output=True, text=True)
+    try:
+        subprocess.run([str(wine), _windows_path(inject), _windows_path(dll)], env=env, check=True, capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        detail = " ".join(str(getattr(exc, "stderr", "") or exc).split())[-300:]
+        raise AgentNotSent(f"injecting the agent failed: {detail}") from exc
     deadline = time.time() + 10
     while time.time() < deadline:
         if loaded(pid):
             return
         time.sleep(0.1)
-    raise AgentError("the agent did not load into the game")
+    raise AgentNotSent("the agent did not load into the game")
 
 
 def unload() -> dict:
@@ -137,32 +191,203 @@ def _next_seq() -> int:
     except (OSError, ValueError):
         current = 1000
     current += 1
-    SEQ.write_text(str(current))
+    tmp = SEQ.with_name(f"{SEQ.name}.{os.getpid()}.tmp")
+    tmp.write_text(str(current))
+    os.replace(tmp, SEQ)
     return current
 
 
 _protocol_lock = threading.RLock()
 _lock_depth = 0
 
+# Called on every poll of a wait that comes before sending, with the seconds waited so far: while another
+# process holds the lock (first argument lock_holder(), None when unknown) and while an earlier job still runs
+# in the game (first argument None; this process holds the lock then). It may raise to give up, preferably
+# AgentNotSent: that wait has sent nothing, and the raise leaves no lock or descriptor behind.
+on_lock_wait: Callable[[dict | None, float], None] | None = None
+
+# Commands this process has written to CMD, counted immediately before each write: 0 means nothing was
+# sent yet, so giving up is free; anything else means a command is or was in flight.
+sent_count = 0
+
+# Extra JSON-serializable fields a client adds to its holder record (the CLI's command digest).
+# lock_holder() returns them next to pid, argv and since; those three cannot be overridden.
+holder_extra: dict = {}
+
+
+def _lock_timeout() -> float:
+    try:
+        value = float(os.environ.get("UNCRASHED_LOCK_TIMEOUT") or 60)
+    except ValueError:
+        return 60.0
+    return min(value, 86400.0) if value >= 0 else 60.0
+
+
+def lock_holder() -> dict | None:
+    """What the lock file says about its holder: {pid, argv, since, plus its holder_extra fields}, or None
+    when unknown.
+
+    Diagnostic only and never raises. The file may be empty, partial, foreign or left by a killed process,
+    and processes running older code hold the lock without writing anything.
+    """
+    try:
+        with open(LOCK, "rb") as file:
+            info = json.loads(file.read(65536).decode(errors="replace"))
+        pid = info["pid"]
+        if type(pid) is not int or pid <= 0 or not Path(f"/proc/{pid}").exists():  # bool and float are no pids
+            return None
+        argv, since = info.get("argv"), info.get("since")
+        return {
+            **info,
+            "pid": pid,
+            "argv": [str(a) for a in argv] if isinstance(argv, list) else [],
+            "since": since if isinstance(since, (int, float)) and not isinstance(since, bool) else None,
+        }
+    except Exception:  # anything a foreign file can provoke (OverflowError, RecursionError, ...)
+        return None
+
+
+def _holder_text(holder: dict | None) -> str:
+    if holder is None:
+        return "another process"
+    argv = holder["argv"]
+    if not argv:
+        return f"pid {holder['pid']} (?)"
+    name = Path(argv[0]).name
+    if name in ("cli.py", "__main__.py"):  # `./uc` runs `python -m uncrashed_mcp.cli`: argv[0] is the module file
+        name = "uc"
+    return f"pid {holder['pid']} ({' '.join([name, *argv[1:]])[:120]})"
+
+
+def _holder_record() -> str:
+    record = {"pid": os.getpid(), "argv": sys.argv, "since": round(time.time(), 3)}
+    try:
+        return json.dumps({**holder_extra, **record}, default=str)
+    except (TypeError, ValueError, RecursionError):
+        return json.dumps(record, default=str)
+
+
+def _set_holder(fd: int, text: str) -> None:
+    # In place on the locked descriptor: replacing the file would hand out a second lock.
+    try:
+        os.ftruncate(fd, 0)
+        os.pwrite(fd, text.encode(), 0)
+    except OSError:
+        pass
+
+
+def _acquire(started: float, timeout: float) -> int:
+    try:
+        fd = os.open(LOCK, os.O_RDWR | os.O_CREAT, 0o666)
+    except PermissionError:
+        fd = os.open(LOCK, os.O_RDONLY)
+    try:
+        note_at = 2.0
+        # Polling, so the wait can report, time out and be given up. The price: a poller is never queued in the
+        # kernel, so a holder that re-enters sessions back to back (gaps well under the 50 ms poll; no operation
+        # here does that, an older server looping over single commands can) may keep it out until the timeout.
+        # That failure is loud and sends nothing.
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                pass
+            waited = time.monotonic() - started
+            holder = lock_holder()
+            if on_lock_wait is not None:
+                on_lock_wait(holder, waited)
+            if waited >= timeout:
+                held = waited if holder is None or holder["since"] is None else max(waited, time.time() - holder["since"])
+                raise AgentNotSent(f"agent busy: lock held by {_holder_text(holder)} for {held:.0f}s; nothing was sent; "
+                                   f"retry when that process has finished (the lock frees itself when its holder "
+                                   f"exits: never delete {LOCK})")
+            if waited >= note_at:
+                _note(f"waiting for agent lock held by {_holder_text(holder)}")
+                note_at += 30.0
+            time.sleep(0.05)
+        _set_holder(fd, _holder_record())
+        return fd
+    except BaseException:  # also what on_lock_wait raises: closing the descriptor drops a lock taken meanwhile
+        os.close(fd)
+        raise
+
 
 @contextmanager
 def session():
     """Serialize complete multi-command operations across MCP/CLI clients."""
     global _lock_depth
-    with _protocol_lock:
-        outer = _lock_depth == 0
-        lock = None
-        if outer:
-            lock = open('/tmp/uncrashed-agent.lock', 'a')
-            fcntl.flock(lock, fcntl.LOCK_EX)
+    started, timeout = time.monotonic(), _lock_timeout()
+    if not _protocol_lock.acquire(timeout=timeout):
+        raise AgentNotSent(f"agent busy: lock held by another thread of this process for {timeout:.0f}s; nothing was sent; "
+                           "retry when its operation has finished")
+    try:
+        fd = _acquire(started, timeout) if _lock_depth == 0 else None
         _lock_depth += 1
         try:
             yield
         finally:
             _lock_depth -= 1
-            if lock is not None:
-                fcntl.flock(lock, fcntl.LOCK_UN)
-                lock.close()
+            if fd is not None:
+                _set_holder(fd, "")
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
+    finally:
+        _protocol_lock.release()
+
+
+def _game_started(pid: int) -> float | None:
+    """Wall-clock start of a process: /proc starttime (ticks since boot) plus the boot time."""
+    try:
+        ticks = int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19])
+        boot = next(int(row.split()[1]) for row in Path("/proc/stat").read_text().splitlines() if row.startswith("btime "))
+        return boot + ticks / os.sysconf("SC_CLK_TCK")
+    except (OSError, ValueError, IndexError, StopIteration):
+        return None
+
+
+def _job_running(game_started: float | None) -> bool:
+    """The DLL creates OUT + '.tmp' when a job starts and renames it onto OUT when the job ends."""
+    try:
+        written = OUT.with_name(OUT.name + ".tmp").stat().st_mtime
+    except OSError:
+        return False
+    # Older than the game process (or, start unknown, than 10 minutes): left by a game that crashed mid-job.
+    return written >= (time.time() - 600 if game_started is None else game_started)
+
+
+def _busy_hint() -> str:
+    """What to do about a job marker that does not go away. Deleting the marker under a job that still runs
+    loses that job's reply (the DLL renames the marker onto OUT), so the advice hangs on the agent log."""
+    try:
+        last = str(int(SEQ.read_text().strip()))
+    except (OSError, ValueError):
+        last = "<n>"
+    marker = OUT.with_name(OUT.name + ".tmp")
+    return (f"if it stays busy read './uc log': a line 'job {last} <verb> <n>ms' near its end means the job has ended "
+            f"and {marker} is a leftover that may be deleted; without that line the job still runs or hangs "
+            "(wait, or restart the game) and the file must stay")
+
+
+def _wait_idle() -> None:
+    """A job orphaned by a timed-out or killed client still owns the game thread: do not queue behind it."""
+    if not OUT.with_name(OUT.name + ".tmp").exists():
+        return
+    pid = game_pid()
+    game_started = _game_started(pid) if pid is not None else None
+    started, timeout, noted = time.monotonic(), _lock_timeout(), False
+    while _job_running(game_started):
+        waited = time.monotonic() - started
+        if on_lock_wait is not None:
+            on_lock_wait(None, waited)
+        if waited >= timeout:
+            raise AgentNotSent(f"agent busy: an earlier job is still running; nothing was sent; {_busy_hint()}")
+        if not loaded():
+            raise AgentNotSent("the agent is not loaded (unloaded, or the game closed); nothing was sent")
+        if not noted:
+            _note("agent is finishing an earlier job")
+            noted = True
+        time.sleep(0.05)
 
 
 def execute(command: str, timeout: float = 30.0) -> dict:
@@ -173,16 +398,24 @@ def execute(command: str, timeout: float = 30.0) -> dict:
 def _execute(command: str, timeout: float = 30.0) -> dict:
     """Run one agent command on the game thread.
 
-    Returns {seq, ok, head, lines}. ok is False when the agent reported an error or
-    a caught fault; lines are the reply between the header and the end marker.
+    Returns {seq, ok, head, lines, ended}. ok is False when the agent reported an error or
+    a caught fault; lines are the reply between the header and the end marker; ended is False
+    when the reply has no "end <seq> ..." line at all.
+
+    Raises AgentNotSent while nothing was written, AgentTimeout when no reply came in time, and a
+    plain AgentError when the agent went away after the command was written.
     """
+    global sent_count
+    _refuse_offline()
     command = " ".join(command.split())
     if not command:
-        raise AgentError("empty command")
+        raise AgentNotSent("empty command")
     ensure_agent()
+    _wait_idle()
     seq = _next_seq()
     tmp = CMD.with_suffix(".tmp")
     tmp.write_text(f"{seq} {command}\n")
+    sent_count += 1  # before the rename: from here on the command counts as in flight
     tmp.replace(CMD)
     prefix = f"{seq} "
     deadline = time.time() + timeout
@@ -193,26 +426,73 @@ def _execute(command: str, timeout: float = 30.0) -> dict:
             text = ""
         if text.startswith(prefix):
             rows = text.rstrip("\n").split("\n")
-            ok = rows[-1].strip() == f"end {seq} ok"
-            body = rows[1:-1] if rows[-1].startswith("end ") else rows[1:]
-            return {"seq": seq, "ok": ok, "head": rows[0][len(prefix):], "lines": body}
+            ended = rows[-1].startswith("end ")
+            return {"seq": seq, "ok": rows[-1].strip() == f"end {seq} ok", "head": rows[0][len(prefix):],
+                    "lines": rows[1:-1] if ended else rows[1:], "ended": ended}
         if not loaded():
-            raise AgentError("the agent is not loaded (unloaded, or the game closed)")
+            raise AgentError(f"the agent is not loaded (unloaded, or the game closed); {command[:60]!r} was sent "
+                             "before that and may have run")
         time.sleep(0.03)
-    raise AgentError(f"the agent did not answer {command[:60]!r} within {timeout:.0f}s")
+    raise AgentTimeout(f"the agent did not answer {command[:60]!r} within {timeout:.0f}s; the command was sent and may still run")
 
 
 def _errors(lines: list[str]) -> list[str]:
     return [line.split("error ", 1)[1] for line in lines if "error " in line and line.lstrip("#0123456789 ").startswith("error ")]
 
 
+def _failure(reply: dict) -> str:
+    """Text for a reply that did not end with "end <seq> ok": the agent's error lines, and never the bare
+    "ok <verb>" head, which reads like a success."""
+    head, lines = reply["head"], reply["lines"]
+    errors = ([head[6:]] if head.startswith("error ") else []) + _errors(lines)
+    faults = [line for line in lines if re.match(r"\d+ fault ", line)]
+    if not reply.get("ended", True):
+        # e.g. a fault inside a quiet batch line: the fault and end lines are swallowed with the rest
+        cause = ["agent job ended without an end marker (fault?)"] + faults[-1:]
+    elif faults:
+        cause = [f"agent job faulted: {faults[-1]}"]
+    elif errors:
+        return "; ".join(errors)
+    else:
+        return "; ".join(["agent job failed without an error line"] + ([] if head.startswith("ok ") else [head]) + lines[-2:])
+    more = [f"{len(errors) - 5} more error lines"] if len(errors) > 5 else []
+    return "; ".join(cause + errors[:5] + more)
+
+
 def run(command: str, timeout: float = 30.0) -> list[str]:
-    """execute(), raising AgentError with the agent's own message on failure."""
+    """execute(), raising AgentError (reply attached) with the agent's own message on failure."""
     reply = execute(command, timeout)
     if not reply["ok"]:
-        problems = _errors(reply["lines"]) or [reply["head"]] + reply["lines"][-2:]
-        raise AgentError("; ".join(problems))
+        error = AgentError(_failure(reply))
+        error.reply = reply
+        raise error
     return reply["lines"]
+
+
+_batch_serial = itertools.count(1)
+
+
+def batch_files() -> list[Path]:
+    """Every per-call batch file present, of any process."""
+    pattern = Path(glob.escape(str(BATCH.parent))) / f"{glob.escape(BATCH.stem)}.*{glob.escape(BATCH.suffix)}"
+    return sorted(Path(found) for found in glob.glob(str(pattern)))
+
+
+def _write_batch(commands: list[str]) -> Path:
+    """A file of its own for one batch. The DLL opens the path named in the command only when the job starts,
+    which can be long after the command was latched (stalled game thread) and after this client gave up: a
+    shared path would by then hold the next client's commands."""
+    for old in batch_files():  # left by jobs that never answered; a day covers any job still pending
+        try:
+            if old.stat().st_mtime < time.time() - BATCH_KEEP:
+                old.unlink()
+        except OSError:
+            pass
+    # pid and a per-process counter name the call; the token covers pid reuse against files not yet swept
+    path = BATCH.with_name(f"{BATCH.stem}.{os.getpid()}.{next(_batch_serial)}.{secrets.token_hex(4)}{BATCH.suffix}")
+    with open(path, "x") as file:
+        file.write("\n".join(" ".join(c.split()) for c in commands) + "\n")
+    return path
 
 
 def batch(commands: list[str], timeout: float | None = None, quiet: bool = False) -> tuple[dict[int, list[str]], str]:
@@ -227,8 +507,23 @@ def _batch(commands: list[str], timeout: float | None = None, quiet: bool = Fals
     """
     if not commands:
         return {}, "batch lines=0 ok=0 failed=0"
-    BATCH.write_text("\n".join(" ".join(c.split()) for c in commands) + "\n")
-    lines = run(f"batch {BATCH_WINDOWS}{' quiet' if quiet else ''}", timeout or max(60.0, len(commands) * 0.02))
+    _refuse_offline()  # before any file is written
+    path = _write_batch(commands)
+    sent_before = sent_count
+    try:
+        lines = run(f"batch {_windows_path(path)}{' quiet' if quiet else ''}", timeout or max(60.0, len(commands) * 0.02))
+    except AgentNotSent:
+        path.unlink(missing_ok=True)  # no job will ever name it
+        raise
+    except AgentError as exc:
+        if exc.reply is not None:
+            path.unlink(missing_ok=True)  # the job answered, so it has ended
+        raise  # otherwise sent without a reply: the job may still be pending or reading, so the file stays
+    except BaseException:  # interrupted (signal, KeyboardInterrupt)
+        if sent_count == sent_before:
+            path.unlink(missing_ok=True)  # nothing was sent, so no job will ever name it
+        raise
+    path.unlink(missing_ok=True)
     by_index: dict[int, list[str]] = {}
     summary = ""
     for line in lines:

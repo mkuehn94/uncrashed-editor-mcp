@@ -2,13 +2,13 @@
 
 All four tools are read-only. They do not move objects, trim foliage, change the
 camera, clear the map or save it. MCP inputs / results use **metres** and degrees;
-native commands use **centimetres**. Restart the Python MCP process after updating
-so its tool list contains these additions. Rebuild / hot-reload the DLL too when
+native commands use **centimetres**. Restart a running MCP server after updating
+so its tool list contains these additions (the CLI needs no restart). Rebuild / hot-reload the DLL too when
 installing the source on another machine.
 
 ## `get_object_bounds(actor)`
 
-`actor` is a live hexadecimal address from `agent_exec("actors ...")`, not a row
+`actor` is a live hexadecimal address from `./uc exec actors ...`, not a row
 ID. Addresses become invalid after loading a map or restarting the game.
 
 Returns:

@@ -1,0 +1,168 @@
+{
+ "metrics": {
+  "placed_objects": 1,
+  "gates": 0,
+  "level_actors": null,
+  "non_editor_actors": null,
+  "blueprint_objects": 1,
+  "triangles": 0,
+  "triangles_source": "catalogue hull estimate",
+  "shadow_casters": null,
+  "never_culled": null,
+  "physics_objects": null,
+  "collision_objects": 0,
+  "mesh_components": null,
+  "grid_cells": 1,
+  "cell_m": 50,
+  "possible_light_objects": 0,
+  "dynamic_lights": null,
+  "shadow_lights": null
+ },
+ "per_category": {
+  "Interractive": 1
+ },
+ "per_kind": {
+  "blueprint": 1
+ },
+ "top_rows": [
+  {
+   "row": "NewRow_17",
+   "name": "ME Spawner",
+   "category": "Interractive",
+   "kind": "blueprint",
+   "count": 1,
+   "triplanar": false,
+   "triangles_each": 0,
+   "triangles_total": 0
+  }
+ ],
+ "top_rows_by_triangles": [],
+ "densest_cells": [
+  {
+   "center_m": [
+    -25.0,
+    -25.0,
+    1.0
+   ],
+   "objects": 1,
+   "triangles": 0,
+   "top_rows": [
+    {
+     "row": "NewRow_17",
+     "name": "ME Spawner",
+     "count": 1
+    }
+   ],
+   "camera": {
+    "x": -63.9,
+    "y": -63.9,
+    "z": 34.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  }
+ ],
+ "heaviest_cells": [
+  {
+   "center_m": [
+    -25.0,
+    -25.0,
+    1.0
+   ],
+   "objects": 1,
+   "triangles": 0,
+   "top_rows": [
+    {
+     "row": "NewRow_17",
+     "name": "ME Spawner",
+     "count": 1
+    }
+   ],
+   "camera": {
+    "x": -63.9,
+    "y": -63.9,
+    "z": 34.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  }
+ ],
+ "engine_instancing": null,
+ "warnings": [],
+ "status": "ok",
+ "source": "/home/user/.local/share/Steam/steamapps/compatdata/1682970/pfx/drive_c/users/steamuser/AppData/Roaming/Uncrashed/76561190000000000/MapEditor/User/Map_B/Map_B.json",
+ "mode": "offline",
+ "row_flags": "unavailable",
+ "consolidation": {
+  "objects_removed": 0,
+  "objects_added": 0,
+  "saved": 0
+ },
+ "region_m": null,
+ "budgets": {
+  "placed_objects": {
+   "warn": 4000,
+   "high": 10000
+  },
+  "mesh_components": {
+   "warn": 5000,
+   "high": 12000
+  },
+  "blueprint_objects": {
+   "warn": 300,
+   "high": 1000
+  },
+  "triangles": {
+   "warn": 8000000.0,
+   "high": 25000000.0
+  },
+  "shadow_casters": {
+   "warn": 4000,
+   "high": 10000
+  },
+  "never_culled": {
+   "warn": 2000,
+   "high": 6000
+  },
+  "dynamic_lights": {
+   "warn": 16,
+   "high": 48
+  },
+  "shadow_lights": {
+   "warn": 4,
+   "high": 12
+  },
+  "physics_objects": {
+   "warn": 50,
+   "high": 200
+  },
+  "cell_objects": {
+   "warn": 300,
+   "high": 800
+  },
+  "cell_triangles": {
+   "warn": 1500000.0,
+   "high": 4000000.0
+  },
+  "row_count": {
+   "warn": 500,
+   "high": 2000
+  },
+  "frame_ms_avg": {
+   "warn": 16.7,
+   "high": 33.3
+  },
+  "frame_ms_p95": {
+   "warn": 25.0,
+   "high": 50.0
+  }
+ },
+ "limitations": [
+  "Budgets are heuristic UE4 defaults (override them), not limits measured for Uncrashed or your GPU.",
+  "Triangle estimates come from the extracted LOD0 hull: exact for meshes under ~8000 triangles, capped near 8000 for detailed ones, unknown (0) for Blueprint rows unless the live engine exposes a count. LODs are not modelled.",
+  "Offline mode cannot see lights, shadows, culling or physics unless row flags were cached by a live run.",
+  "Frame time is sampled once per agent job (~50-100 ms apart) in the editor, not in flight; it is a coarse sample. VSync, t.MaxFPS, the engine smoothed frame-rate range and an unfocused/background window can all raise it above the real cost.",
+  "Live shadow/cull/physics/mesh-component budgets grade placed objects only; *_base figures (landscape, foliage, base-map actors) are informational because the map editor cannot change them."
+ ],
+ "report_json": "/tmp/uncrashed-perf/performance-report.json"
+}

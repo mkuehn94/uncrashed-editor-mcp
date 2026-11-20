@@ -1,0 +1,51 @@
+{
+ "name": "tower",
+ "status": "incomplete",
+ "objects_checked": 5,
+ "anchors": 1,
+ "connected": 3,
+ "disconnected_count": 1,
+ "disconnected": [
+  {
+   "actor": "17e63a50",
+   "row": "NewRow_95",
+   "group": "tower.frame",
+   "xf": [
+    3000,
+    -900,
+    1200.75,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1
+   ]
+  }
+ ],
+ "anchored_cantilevers": 1,
+ "foundation_warnings": [
+  {
+   "actor": "17e63a10",
+   "samples": 25,
+   "anchored": 17,
+   "missing": 0,
+   "buried": 2,
+   "basis": "collision_vertical_span",
+   "coverage": 0.68
+  }
+ ],
+ "unknown_foundations": [],
+ "decorative_detached_count": 1,
+ "truncated": true,
+ "contact_errors": [],
+ "report_json": "/tmp/uncrashed-managed/assembly-tower-5d1f.json",
+ "limitations": [
+  "Connectivity heuristic, NOT load-bearing/stability certification or exact mesh-mesh intersection.",
+  "Edges require reciprocal oriented-bounds-versus-collision hits; bounds can bridge empty mesh space.",
+  "Only explicit foundations seed support. Bare landscape/base traces ignore placed actors and foliage.",
+  "Foundation anchors use 5x5 vertical collision spans; hollow/tilted/composite foundations need manual review.",
+  "Intentional cantilevers need an anchor path, not full ground footprint; strength/deflection are not evaluated.",
+  "Plants/decorations never propagate structural support; external assemblies are not inferred as anchors."
+ ]
+}

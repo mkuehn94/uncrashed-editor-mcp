@@ -252,7 +252,7 @@ def clearing_zones(action: str = 'list', name: str = '', center: list | None = N
         if preview:
             return result
         if action == 'upsert' and inv.get('unavailable_sources', 0) and not allow_partial:
-            raise RuntimeError('GPU-only foliage sources unavailable; preview first and pass allow_partial=True to clear supported sources only')
+            raise RuntimeError('GPU-only foliage sources unavailable; preview first, then apply with allow_partial to clear supported sources only')
         # Keep recoverable previous config if either disk/runtime step fails.
         write_state(root, state)
         try:

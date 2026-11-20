@@ -75,5 +75,41 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(agent._errors(["#3 error no row X in DT", "spawned 1 row=A class=B"]), ["no row X in DT"])
 
 
+class FailureTextTest(unittest.TestCase):
+    """What run() raises for a reply that did not end with "end <seq> ok"."""
+
+    @staticmethod
+    def text(head: str, lines: list[str], ended: bool = True) -> str:
+        return agent._failure({"seq": 1001, "ok": False, "head": head, "lines": lines, "ended": ended})
+
+    def test_plain_failure_is_the_agents_own_message(self) -> None:
+        self.assertEqual(self.text("ok spawn", ["error no row X in DT"]), "no row X in DT")
+        self.assertEqual(self.text("ok batch", ["error cannot open Z:\\tmp\\b.txt", "error failed"]), "cannot open Z:\\tmp\\b.txt; failed")
+        self.assertEqual(self.text("error unresolved: no GWorld", []), "unresolved: no GWorld")
+        # Replies built by callers and tests that predate 'ended' count as ended.
+        self.assertEqual(agent._failure({"seq": 1, "ok": False, "head": "ok spawn", "lines": ["error bad"]}), "bad")
+
+    def test_fault_is_named_even_after_an_ordinary_failed_line(self) -> None:
+        fault = "1006 fault c0000005 rip=1234 rva=0"
+        self.assertEqual(self.text("ok batch", ["#0 spawned 7f00 row=A", fault]), f"agent job faulted: {fault}")
+        self.assertEqual(self.text("ok batch", ["#0 spawned 7f00 row=A", "#1 error no row in bad 2", fault]),
+                         f"agent job faulted: {fault}; no row in bad 2")
+        many = [f"#{i} error no row R{i}" for i in range(8)]
+        self.assertEqual(self.text("ok batch", many + [fault]),
+                         f"agent job faulted: {fault}; " + "; ".join(f"no row R{i}" for i in range(5)) + "; 3 more error lines")
+
+    def test_missing_end_marker_never_reads_like_a_success(self) -> None:
+        self.assertEqual(self.text("ok batch", [], ended=False), "agent job ended without an end marker (fault?)")
+        self.assertEqual(self.text("ok batch", ["#1 error no row in bad 2"], ended=False),
+                         "agent job ended without an end marker (fault?); no row in bad 2")
+
+    def test_the_bare_head_is_never_the_message(self) -> None:
+        self.assertEqual(self.text("ok save", []), "agent job failed without an error line")
+        self.assertEqual(self.text("ok save", ["a", "b", "c"]), "agent job failed without an error line; b; c")
+        self.assertEqual(self.text("fault in spawn", []), "agent job failed without an error line; fault in spawn")
+        for head, lines, ended in (("ok batch", [], True), ("ok batch", [], False), ("ok batch", ["#0 spawned 1 row=A"], True)):
+            self.assertNotIn("ok batch", self.text(head, lines, ended))
+
+
 if __name__ == "__main__":
     unittest.main()

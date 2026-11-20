@@ -1,0 +1,85 @@
+{
+ "objects_checked": 5,
+ "issues": {
+  "rock": 1,
+  "sunk": 1,
+  "float": 1
+ },
+ "minor_sinking_props": 0,
+ "top": [
+  {
+   "id": 1,
+   "kind": "rock",
+   "at_m": [
+    7.0,
+    2.0,
+    0.0
+   ],
+   "severity": 2,
+   "measure": null,
+   "objects": [
+    "container green",
+    "Rock 05"
+   ],
+   "view": {
+    "x": -4.0,
+    "y": -9.0,
+    "z": 7.0,
+    "yaw": 45.0,
+    "pitch": -24.2
+   }
+  },
+  {
+   "id": 2,
+   "kind": "float",
+   "at_m": [
+    64.0,
+    0.1,
+    8.0
+   ],
+   "severity": 2,
+   "measure": 7.9,
+   "objects": [
+    "Beam01",
+    "LED SCREEN"
+   ],
+   "view": {
+    "x": 32.2,
+    "y": -31.7,
+    "z": 28.2,
+    "yaw": 45.0,
+    "pitch": -24.2
+   }
+  },
+  {
+   "id": 3,
+   "kind": "sunk",
+   "at_m": [
+    -27.6,
+    1.0,
+    0.0
+   ],
+   "severity": 1,
+   "measure": 13.2,
+   "objects": [
+    "Camaro",
+    "Base Ground 0-1"
+   ],
+   "view": {
+    "x": -39.4,
+    "y": -10.8,
+    "z": 7.5,
+    "yaw": 45.0,
+    "pitch": -24.2
+   }
+  }
+ ],
+ "report_html": "/tmp/uncrashed-collide/report.html",
+ "region_m": [
+  -85.0,
+  -85.0,
+  85.0,
+  85.0
+ ],
+ "scope": "Placed-object clashes and support connectivity only. Use check_foundations / check_environment for footprint and environment checks."
+}

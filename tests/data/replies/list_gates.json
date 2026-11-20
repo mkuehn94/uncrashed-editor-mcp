@@ -1,0 +1,68 @@
+{
+ "gates": [
+  {
+   "id": "STARTGATE",
+   "start": true
+  },
+  {
+   "id": "DefaultGate",
+   "start": false
+  },
+  {
+   "id": "DefaultOneW",
+   "start": false
+  },
+  {
+   "id": "SideNeon",
+   "start": false
+  },
+  {
+   "id": "Invisible",
+   "start": false
+  },
+  {
+   "id": "ClassicRound",
+   "start": false
+  },
+  {
+   "id": "GateModul01",
+   "start": false
+  },
+  {
+   "id": "Sideflag_0",
+   "start": false
+  },
+  {
+   "id": "InflSide01",
+   "start": false
+  },
+  {
+   "id": "InflSimpl02",
+   "start": false
+  },
+  {
+   "id": "InflSimpl01",
+   "start": false
+  },
+  {
+   "id": "InflRound01",
+   "start": false
+  },
+  {
+   "id": "InflElev01",
+   "start": false
+  },
+  {
+   "id": "InflDive01",
+   "start": false
+  },
+  {
+   "id": "InflDive02",
+   "start": false
+  },
+  {
+   "id": "InflRond02",
+   "start": false
+  }
+ ]
+}

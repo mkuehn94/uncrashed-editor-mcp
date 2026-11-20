@@ -1,12 +1,16 @@
 [project]
 name = "uncrashed-mcp"
-version = "0.1.0"
-description = "MCP server for editing the Uncrashed FPV Simulator track editor live"
+version = "0.2.0"
+description = "CLI and optional MCP server for editing the Uncrashed FPV Simulator track editor live"
 requires-python = ">=3.10"
-dependencies = ["mcp>=2,<3", "pillow>=10"]
+dependencies = ["pillow>=10"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=2,<3"]
 
 [project.scripts]
-uncrashed-mcp = "uncrashed_mcp.__main__:main"
+uncrashed = "uncrashed_mcp.cli:main"
+uncrashed-mcp = "uncrashed_mcp.__main__:serve"
 
 [build-system]
 requires = ["setuptools>=68"]

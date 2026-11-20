@@ -1,0 +1,18 @@
+{
+ "assemblies": {
+  "tower": {
+   "roles": {
+    "tower.foot": "foundation",
+    "tower.frame": "structure",
+    "tower.roof": "cantilever",
+    "tower.decor": "decoration"
+   }
+  },
+  "shed": {
+   "roles": {
+    "shed.base": "foundation",
+    "shed.walls": "structure"
+   }
+  }
+ }
+}

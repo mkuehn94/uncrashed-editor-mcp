@@ -1,0 +1,70 @@
+{
+ "row": "NewRow_4",
+ "name": "Neons Pink",
+ "collision": true,
+ "suggestions": [
+  {
+   "id": "NewRow_37",
+   "name": "Neons02",
+   "category": "Interractive",
+   "kind": "mesh",
+   "tags": [
+    "sign",
+    "neon"
+   ],
+   "hidden": false,
+   "size_m": [
+    6.32,
+    1.79,
+    0.1
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null,
+   "score": 7.91
+  },
+  {
+   "id": "NewRow_372",
+   "name": "Neons02",
+   "category": "Interractive",
+   "kind": "mesh",
+   "tags": [
+    "sign",
+    "neon"
+   ],
+   "hidden": true,
+   "size_m": [
+    6.32,
+    1.79,
+    0.1
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": "M_Axis_R_Collision_Inst",
+   "score": 7.91
+  },
+  {
+   "id": "NewRow_373",
+   "name": "Neons02",
+   "category": "Interractive",
+   "kind": "mesh",
+   "tags": [
+    "sign",
+    "neon"
+   ],
+   "hidden": true,
+   "size_m": [
+    6.32,
+    1.79,
+    0.1
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": "M_Axis_R_Collision_Inst",
+   "score": 7.91
+  }
+ ]
+}

@@ -33,8 +33,8 @@ def read_camera() -> dict:
         if not line.startswith('camera '):
             continue
         fields = dict(re.findall(r'(\w+)=(\S+)', line))
-        xyz = [float(v) / 100 for v in fields['loc'].split(',')]
-        rot = [float(v) for v in fields['rot'].split(',')]
+        xyz = [round(float(v) / 100, 4) for v in fields['loc'].split(',')]
+        rot = [round(float(v), 4) for v in fields['rot'].split(',')]
         return dict(zip(('x', 'y', 'z', 'pitch', 'yaw', 'roll'), xyz + rot),
                     fov=float(fields['fov']), held=fields['held'] == '1', backend='native')
     raise LiveError('native camera reply missing; rebuild/reload native agent')
@@ -132,7 +132,16 @@ def _engine_capture_locked(path: Path, pose: dict, width: int, height: int) -> N
     command = (f'capture start {width} {height} '
                f'{pose["x"]*100:.5f} {pose["y"]*100:.5f} {pose["z"]*100:.5f} '
                f'{pose["pitch"]:.5f} {pose["yaw"]:.5f} {pose.get("roll", 0):.5f} {pose.get("fov", 90):.5f}')
-    lines = agent.run(command)
+    deadline = time.monotonic() + 32
+    while True:
+        try:
+            lines = agent.run(command)
+            break
+        except agent.AgentError as exc:
+            # A capture whose client died keeps the single native slot until the 30 s watchdog frees it.
+            if 'capture busy' not in str(exc) or time.monotonic() >= deadline:
+                raise
+            time.sleep(1)
     token = next((m[1] for line in lines if (m := re.search(r'^capture token=(\d+)\b', line))), None)
     if token is None:
         raise LiveError('capture job token missing; native agent update needed')
@@ -145,8 +154,15 @@ def _engine_capture_locked(path: Path, pose: dict, width: int, height: int) -> N
         time.sleep(.15)
         agent.run(f'capture export {token} {agent._windows_path(path.parent)} {path.name}', timeout=30)
         _validate_image(path, width, height, True)
-    finally:
-        agent.run(f'capture stop {token}')
+    except BaseException:
+        # Keep the error that is on its way out (a reply timeout says the render was sent and may still run):
+        # a stop that fails as well must not replace it. The native watchdog frees the slot after 30 s.
+        try:
+            agent.run(f'capture stop {token}')
+        except Exception:
+            pass
+        raise
+    agent.run(f'capture stop {token}')
 
 
 def _window_capture(path: Path, width: int, height: int, foreground: bool) -> None:

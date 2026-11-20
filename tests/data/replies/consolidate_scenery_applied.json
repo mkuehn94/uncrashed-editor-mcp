@@ -1,0 +1,707 @@
+{
+ "source": "live",
+ "preview": false,
+ "units": "metres",
+ "considered": 1798,
+ "objects_removed": 1767,
+ "objects_added": 78,
+ "saved": 1689,
+ "merges": 78,
+ "by_row": {
+  "NewRow_122": {
+   "tiles": 80,
+   "replacements": 40
+  },
+  "NewRow_181": {
+   "tiles": 576,
+   "replacements": 6
+  },
+  "NewRow_182": {
+   "tiles": 304,
+   "replacements": 7
+  },
+  "NewRow_185": {
+   "tiles": 716,
+   "replacements": 14
+  },
+  "NewRow_303": {
+   "tiles": 46,
+   "replacements": 4
+  },
+  "NewRow_318": {
+   "tiles": 45,
+   "replacements": 7
+  }
+ },
+ "top_merges": [
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 256,
+   "grid": [
+    16,
+    16
+   ],
+   "size_m": [
+    64.0,
+    64.0
+   ],
+   "pivot_m": [
+    40.0,
+    40.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 256,
+   "grid": [
+    16,
+    16
+   ],
+   "size_m": [
+    64.0,
+    64.0
+   ],
+   "pivot_m": [
+    -48.0,
+    -48.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_181",
+   "name": "Gravel",
+   "group": "-",
+   "tiles": 256,
+   "grid": [
+    16,
+    16
+   ],
+   "size_m": [
+    64.0,
+    64.0
+   ],
+   "pivot_m": [
+    44.0,
+    -48.0,
+    0.02
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_181",
+   "name": "Gravel",
+   "group": "-",
+   "tiles": 256,
+   "grid": [
+    16,
+    16
+   ],
+   "size_m": [
+    64.0,
+    64.0
+   ],
+   "pivot_m": [
+    -48.0,
+    44.0,
+    0.02
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_182",
+   "name": "Asphalt",
+   "group": "-",
+   "tiles": 64,
+   "grid": [
+    4,
+    16
+   ],
+   "size_m": [
+    16.0,
+    64.0
+   ],
+   "pivot_m": [
+    0.0,
+    -48.0,
+    0.05
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    4.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_182",
+   "name": "Asphalt",
+   "group": "-",
+   "tiles": 64,
+   "grid": [
+    16,
+    4
+   ],
+   "size_m": [
+    64.0,
+    16.0
+   ],
+   "pivot_m": [
+    -48.0,
+    0.0,
+    0.05
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    4.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_182",
+   "name": "Asphalt",
+   "group": "-",
+   "tiles": 64,
+   "grid": [
+    16,
+    4
+   ],
+   "size_m": [
+    64.0,
+    16.0
+   ],
+   "pivot_m": [
+    16.0,
+    0.0,
+    0.05
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    4.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_182",
+   "name": "Asphalt",
+   "group": "-",
+   "tiles": 64,
+   "grid": [
+    4,
+    16
+   ],
+   "size_m": [
+    16.0,
+    64.0
+   ],
+   "pivot_m": [
+    0.0,
+    40.0,
+    0.05
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    4.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 32,
+   "grid": [
+    2,
+    16
+   ],
+   "size_m": [
+    8.0,
+    64.0
+   ],
+   "pivot_m": [
+    76.0,
+    40.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    2.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 32,
+   "grid": [
+    16,
+    2
+   ],
+   "size_m": [
+    64.0,
+    8.0
+   ],
+   "pivot_m": [
+    40.0,
+    76.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    2.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 32,
+   "grid": [
+    2,
+    16
+   ],
+   "size_m": [
+    8.0,
+    64.0
+   ],
+   "pivot_m": [
+    -12.0,
+    -48.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    2.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 32,
+   "grid": [
+    16,
+    2
+   ],
+   "size_m": [
+    64.0,
+    8.0
+   ],
+   "pivot_m": [
+    -48.0,
+    -12.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    2.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_182",
+   "name": "Asphalt",
+   "group": "-",
+   "tiles": 32,
+   "grid": [
+    8,
+    4
+   ],
+   "size_m": [
+    32.0,
+    16.0
+   ],
+   "pivot_m": [
+    64.0,
+    0.0,
+    0.05
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    8.0,
+    4.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    1,
+    16
+   ],
+   "size_m": [
+    4.0,
+    64.0
+   ],
+   "pivot_m": [
+    10.0,
+    -48.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    1.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    16,
+    1
+   ],
+   "size_m": [
+    64.0,
+    4.0
+   ],
+   "pivot_m": [
+    40.0,
+    -10.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    16,
+    1
+   ],
+   "size_m": [
+    64.0,
+    4.0
+   ],
+   "pivot_m": [
+    -48.0,
+    10.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    1,
+    16
+   ],
+   "size_m": [
+    4.0,
+    64.0
+   ],
+   "pivot_m": [
+    -10.0,
+    40.0,
+    0.17
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    1.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_181",
+   "name": "Gravel",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    1,
+    16
+   ],
+   "size_m": [
+    4.0,
+    64.0
+   ],
+   "pivot_m": [
+    78.0,
+    -48.0,
+    0.02
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    1.0,
+    16.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_181",
+   "name": "Gravel",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    16,
+    1
+   ],
+   "size_m": [
+    64.0,
+    4.0
+   ],
+   "pivot_m": [
+    44.0,
+    -14.0,
+    0.02
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    16.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "row": "NewRow_181",
+   "name": "Gravel",
+   "group": "-",
+   "tiles": 16,
+   "grid": [
+    1,
+    16
+   ],
+   "size_m": [
+    4.0,
+    64.0
+   ],
+   "pivot_m": [
+    -14.0,
+    44.0,
+    0.02
+   ],
+   "rotation_pitch_yaw_roll": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "scale": [
+    1.0,
+    16.0,
+    1.0
+   ]
+  }
+ ],
+ "stacked_duplicates": 0,
+ "duplicate_examples": [],
+ "skipped_rows": {},
+ "manual_candidates": [
+  {
+   "row": "NewRow_3",
+   "name": "Lights Night ME",
+   "count": 32,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_157",
+   "name": "Scafold 01a",
+   "count": 11,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_164",
+   "name": "Bush5 01",
+   "count": 10,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_28",
+   "name": "container green",
+   "count": 8,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_27",
+   "name": "container green",
+   "count": 8,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_26",
+   "name": "container green",
+   "count": 8,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_1",
+   "name": "container green",
+   "count": 8,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_93",
+   "name": "Old Van 01 01",
+   "count": 3,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_775",
+   "name": "Kangoo",
+   "count": 3,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  },
+  {
+   "row": "NewRow_95",
+   "name": "Old Workshop 01 02",
+   "count": 2,
+   "not_merged_because": "not triplanar: scaling would stretch its texture",
+   "advice": "thin out, use fewer larger variants, or replace by hand"
+  }
+ ],
+ "plan_json": "/tmp/uncrashed-perf/consolidate-plan.json",
+ "limitations": [
+  "Only catalogue-triplanar rows whose hull is a plain box are merged; texture stays world-projected, seams vanish.",
+  "Replacements are new actors: Blueprint/material runtime state is not carried over (catalogue rows only).",
+  "Fewer actors cut per-object CPU/draw cost; a merged box is culled as one, so very large merges stay visible longer.",
+  "Undo with undo_edit per transaction, newest first. No edit auto-saves.",
+  "Apply sends the largest-scale merge alone first, then checks every replacement pivot/scale against the request (1 cm, 0.01%); a mismatch undoes that transaction and stops."
+ ],
+ "transactions": [
+  "0f3a9c2e7b1d4856a0c9e8f7d6b5a432",
+  "5d1f0e9c8b7a4635a2c1d0e9f8b7a654"
+ ],
+ "verified": 78,
+ "undo": "undo_edit(transaction, preview=False) for each id, newest first"
+}

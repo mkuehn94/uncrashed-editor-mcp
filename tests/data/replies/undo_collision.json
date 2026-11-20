@@ -1,0 +1,9 @@
+{
+ "transaction": "94427fe8a49f4676be93accc6e98eb7e",
+ "preview": true,
+ "restores_rules": true,
+ "actors": 3,
+ "actors_live": 2,
+ "actors_missing": 1,
+ "note": "1 journaled handles are no longer loaded (map reloaded or objects deleted): only the persisted rules apply to them"
+}

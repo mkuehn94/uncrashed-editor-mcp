@@ -1,0 +1,129 @@
+{
+ "mode": "foundation",
+ "units": "metres",
+ "selected": 3,
+ "checked": 3,
+ "errors": [],
+ "findings": {
+  "incomplete_footprint_support": 2,
+  "base_plane_penetration": 1,
+  "tilted_footprint_approximation": 1
+ },
+ "objects_with_findings": 2,
+ "unknown_objects": 0,
+ "sampling_complete": true,
+ "truncated": false,
+ "parameters": {
+  "region": null,
+  "spacing_m": 0.75,
+  "tolerance_m": 0.3,
+  "max_drop_m": 50.0,
+  "include_canopies": false,
+  "include_structural": false
+ },
+ "limitations": [
+  "Read-only heuristic diagnostics, not structural certification or a flight test.",
+  "Foundation coverage uses the bounds base plane: eaves, arches, stilts and intentional cantilevers need manual review.",
+  "Physics foliage findings test a subject OBB against base/placed-foliage collision, not exact mesh-versus-mesh intersection.",
+  "Canopy warnings compare visual AABBs of loaded base instances and placed plants taller than 2 m; sparse crowns may not intersect actual geometry.",
+  "Only loaded levels/instances are measured; detail lists capped at 12 per actor. Grid intervals capped at 32 per axis; effective spacing reported.",
+  "Base flora recognised by plant mesh paths. GPU-only landscape grass cannot expose instance transforms; unavailable-source counts make canopy coverage incomplete."
+ ],
+ "top": [
+  {
+   "actor": "17e63c30",
+   "row": "Car",
+   "name": "Camaro",
+   "status": "review",
+   "issues": [
+    "incomplete_footprint_support",
+    "base_plane_penetration",
+    "tilted_footprint_approximation"
+   ],
+   "foundation": {
+    "samples": 9,
+    "supported": 3,
+    "unsupported": 6,
+    "penetrating": 2,
+    "missing": 0,
+    "support_coverage": 0.3333,
+    "max_known_gap_m": 0.45,
+    "max_penetration_m": 0.17,
+    "unsupported_corners": [
+     "u_min_v_min",
+     "u_min_v_max"
+    ],
+    "effective_spacing_m": [
+     0.8,
+     0.666667
+    ]
+   },
+   "at_m": [
+    82.4,
+    1.0,
+    0.0
+   ],
+   "bounds_basis": "aabb",
+   "footprint_basis": "unknown",
+   "examples": []
+  },
+  {
+   "actor": "17e63a10",
+   "row": "House",
+   "name": "House",
+   "status": "review",
+   "issues": [
+    "incomplete_footprint_support"
+   ],
+   "foundation": {
+    "samples": 20,
+    "supported": 12,
+    "unsupported": 8,
+    "penetrating": 0,
+    "missing": 2,
+    "support_coverage": 0.6,
+    "max_known_gap_m": 6.75,
+    "max_penetration_m": 0.0,
+    "unsupported_corners": [
+     "u_min_v_max",
+     "u_max_v_max"
+    ],
+    "effective_spacing_m": [
+     0.75,
+     0.5
+    ]
+   },
+   "at_m": [
+    0.0,
+    0.0,
+    -0.5
+   ],
+   "bounds_basis": "mesh_obb",
+   "footprint_basis": "unknown",
+   "examples": [
+    {
+     "x": 10.005,
+     "y": 20.0025,
+     "bottom": -0.5,
+     "gap_m": 6.75,
+     "surface": "landscape"
+    },
+    {
+     "x": -10.0,
+     "y": 20.0,
+     "bottom": -0.5,
+     "gap_m": null,
+     "surface": "unknown"
+    },
+    {
+     "x": 10.0,
+     "y": -20.0,
+     "bottom": -0.5,
+     "gap_m": 1.2,
+     "surface": "NewRow_185"
+    }
+   ]
+  }
+ ],
+ "report_json": "/tmp/uncrashed-audit/foundation-report.json"
+}

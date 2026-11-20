@@ -1,0 +1,31 @@
+{
+ "action": "transform",
+ "objects": 3,
+ "groups": [
+  "house.floor",
+  "house.walls"
+ ],
+ "preview": true,
+ "pivot_m": [
+  126.505,
+  -43.6025,
+  0.0775
+ ],
+ "delta_m": [
+  10.0,
+  -2.5,
+  0.0
+ ],
+ "rotation_pitch_yaw_roll": [
+  0.0,
+  15.0,
+  0.0
+ ],
+ "uniform_scale": 1,
+ "limitations": [
+  "Move/rotate/uniform-scale preserve actors; clone/delete undo respawns catalogue rows.",
+  "Snapshots cover row, group and transform, not arbitrary Blueprint/material/animation state.",
+  "Explicit failures attempt rollback; native faults/timeouts may require journal recovery. Never retry blindly.",
+  "Undo checks whole affected groups for intervening changes; no silent overwrite."
+ ]
+}

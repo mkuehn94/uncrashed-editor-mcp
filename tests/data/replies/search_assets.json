@@ -1,0 +1,165 @@
+{
+ "count": 8,
+ "assets": [
+  {
+   "id": "NewRow_788",
+   "name": "House 02",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    9.08,
+    14.5,
+    8.28
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_790",
+   "name": "House 04",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    11.87,
+    11.08,
+    6.8
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_789",
+   "name": "House 08",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    11.88,
+    14.64,
+    8.28
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_791",
+   "name": "House 10",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    13.27,
+    10.72,
+    6.78
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_793",
+   "name": "House 18",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    17.54,
+    12.01,
+    8.0
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_792",
+   "name": "House 07",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": true,
+   "size_m": [
+    13.27,
+    12.37,
+    6.8
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_337",
+   "name": "Logcabin Roof",
+   "category": "Wall",
+   "kind": "mesh",
+   "tags": [
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    4.0,
+    2.08,
+    0.07
+   ],
+   "long_axis": "x",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  },
+  {
+   "id": "NewRow_36",
+   "name": "land Rig House 01",
+   "category": "Big_assets",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house",
+    "industrial"
+   ],
+   "hidden": false,
+   "size_m": [
+    1.77,
+    8.3,
+    2.18
+   ],
+   "long_axis": "y",
+   "pivot": "base",
+   "triplanar": false,
+   "material": null
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "folder": "Map_R",
+ "display_name": "Map R",
+ "base": "BaseBoard",
+ "base_switched": false,
+ "cleared": {
+  "objects": 1911,
+  "gates": 9
+ },
+ "objects_in_file": 1911,
+ "gates_in_file": 9,
+ "objects_now": 1911,
+ "gates_now": 9,
+ "failed": [
+  {
+   "line": 1204,
+   "command": "spawn NewRow_999 150.00 -200.00 25.00 0.0000 90.0000 0.0000 1.00000 1.00000 2.00000 gro",
+   "error": "no row NewRow_999 in DT_MapEditorAssets"
+  }
+ ],
+ "failed_count": 1,
+ "seconds": 14.7,
+ "summary": "batch lines=1921 ok=1920 failed=1",
+ "camera": {
+  "x": -63.9,
+  "y": -13.9,
+  "z": 33.0,
+  "pitch": -31.0,
+  "yaw": 45.0,
+  "roll": 0.0,
+  "fov": 90.0,
+  "held": false,
+  "backend": "native"
+ },
+ "clearing_zones": {
+  "native": [
+   "zones count=0 masked=0 restored=0 unavailable=0"
+  ]
+ }
+}

@@ -1,0 +1,204 @@
+{
+ "mode": "air",
+ "complete": true,
+ "summary": {
+  "collision": 2,
+  "tight": 1,
+  "gate_width_small": 1
+ },
+ "min_clearance_m": {
+  "clearance_m": 0.4231,
+  "sample": 17,
+  "at_m": [
+   18.2417,
+   6.1032,
+   2.9871
+  ],
+  "distance_m": 19.0
+ },
+ "overlap_only_ignored": {
+  "BoxComponent": 3
+ },
+ "gate_opening_hits_ignored": 3,
+ "collision_channel": {
+  "name": "Pawn",
+  "index": 2
+ },
+ "profile": {
+  "name": "5inch",
+  "kind": "air",
+  "width": 0.3,
+  "length": 0.3,
+  "height": 0.1,
+  "margin": 0.5,
+  "half_extents_m": [
+   0.15,
+   0.15,
+   0.05
+  ]
+ },
+ "route": {
+  "source": "live",
+  "order_basis": "level_order",
+  "laps": 2,
+  "closed": true,
+  "length_m": 48.643,
+  "samples": 50,
+  "spacing_m": 1.0,
+  "align_gates": true,
+  "drape_missing_samples": []
+ },
+ "gates": [
+  {
+   "gate": 1,
+   "row": "DefaultOneW",
+   "basis": "trigger_volume",
+   "probe_opening_m": {
+    "width": 1.842,
+    "height": 2.0173,
+    "axes": "left/right, up/down",
+    "from": "gate_centre"
+   },
+   "trigger_size_m": {
+    "width": 1.4,
+    "height": 1.4
+   },
+   "frame_hits": 0,
+   "issues": [
+    "gate_width_small"
+   ]
+  }
+ ],
+ "issues": [
+  {
+   "kind": "collision",
+   "severity": 3,
+   "measure_m": null,
+   "obstacle": {
+    "actor": "w1",
+    "kind": "placed",
+    "class": "Actor",
+    "component_class": "StaticMeshComponent",
+    "response": "block",
+    "row": "NewRow_7"
+   },
+   "at_m": [
+    9.8263,
+    1.8598,
+    1.5
+   ],
+   "distance_m": 12.0,
+   "route_span_m": [
+    12.0,
+    12.0
+   ],
+   "view": {
+    "x": 6.65,
+    "y": 2.24,
+    "z": 2.62,
+    "yaw": -6.8,
+    "pitch": -19.3
+   },
+   "id": 1
+  },
+  {
+   "kind": "collision",
+   "severity": 3,
+   "measure_m": null,
+   "obstacle": {
+    "actor": "w1",
+    "kind": "placed",
+    "class": "Actor",
+    "component_class": "StaticMeshComponent",
+    "response": "block",
+    "row": "NewRow_7"
+   },
+   "at_m": [
+    9.4399,
+    -1.3966,
+    1.5
+   ],
+   "distance_m": 37.0,
+   "route_span_m": [
+    37.0,
+    37.0
+   ],
+   "view": {
+    "x": 12.6,
+    "y": -0.87,
+    "z": 2.62,
+    "yaw": -170.5,
+    "pitch": -19.3
+   },
+   "id": 2
+  },
+  {
+   "id": 3,
+   "kind": "tight",
+   "severity": 2,
+   "at_m": [
+    18.2417,
+    6.1032,
+    2.9871
+   ],
+   "distance_m": 19.0,
+   "route_span_m": [
+    18.0,
+    21.0
+   ],
+   "measure_m": 0.4231,
+   "obstacle": {
+    "actor": "2f9a",
+    "kind": "placed",
+    "class": "Actor",
+    "component_class": "StaticMeshComponent",
+    "response": "block",
+    "row": "NewRow_788"
+   },
+   "view": {
+    "x": 15.1,
+    "y": 5.6,
+    "z": 4.09,
+    "yaw": 9.3,
+    "pitch": -19.3
+   }
+  },
+  {
+   "id": 4,
+   "kind": "gate_width_small",
+   "severity": 2,
+   "at_m": [
+    30.0,
+    0.0,
+    2.0
+   ],
+   "distance_m": 31.0,
+   "route_span_m": [
+    31.0,
+    31.0
+   ],
+   "measure_m": 1.4,
+   "required_m": {
+    "width": 1.3,
+    "height": 1.1
+   },
+   "obstacle": {
+    "actor": "4249e1c0",
+    "kind": "gate",
+    "row": "DefaultOneW"
+   },
+   "view": {
+    "x": 27.0,
+    "y": 0.0,
+    "z": 3.05,
+    "yaw": 0.0,
+    "pitch": -19.3
+   },
+   "gate": 1
+  }
+ ],
+ "issue_count": 4,
+ "report_json": "/tmp/uncrashed-clearance/report.json",
+ "report_html": "/tmp/uncrashed-clearance/report.html",
+ "_note": "gates/min_clearance/tight/gate issues hand-augmented onto pipeline output"
+}

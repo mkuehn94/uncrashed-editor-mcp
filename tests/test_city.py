@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import atexit
 import json
 import math
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 
-os.environ.setdefault("UNCRASHED_MAPS_DIR", tempfile.mkdtemp(prefix="uncrashed-maps-"))
+if "UNCRASHED_MAPS_DIR" not in os.environ:
+    os.environ["UNCRASHED_MAPS_DIR"] = tempfile.mkdtemp(prefix="uncrashed-maps-")
+    atexit.register(shutil.rmtree, os.environ["UNCRASHED_MAPS_DIR"], ignore_errors=True)
 
 from uncrashed_mcp.build import _city_layout, build_city, build_district, build_structure
 from uncrashed_mcp.catalog import load_catalog

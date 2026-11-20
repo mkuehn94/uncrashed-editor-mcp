@@ -441,7 +441,7 @@ def consolidate_scenery(catalog, name: str = '', region=None, rows: list[str] | 
         raise ValueError('limit must be 1..200')
     if name:
         if not preview:
-            raise ValueError('a saved map file is preview-only; load_live it and run with preview=False there')
+            raise ValueError('a saved map file is preview-only; load_live it, then apply on the open editor without a name')
         data, path = load_saved(name)
         p = plan(objects_from_map(data), catalog, rows, region, tolerance, max_size)
         return _report(p, limit, {'source': str(path), 'preview': True})
@@ -473,12 +473,12 @@ def consolidate_scenery(catalog, name: str = '', region=None, rows: list[str] | 
                     groups.undo_edit(done['transaction'], preview=False)
                     undone = f'transaction {done["transaction"]} was undone'
                 except Exception as exc:  # report, never hide, a failed rollback
-                    undone = f'AUTO-UNDO FAILED ({exc}); run undo_edit({done["transaction"]!r}, preview=False)'
+                    undone = f'AUTO-UNDO FAILED ({exc}); run undo_edit {done["transaction"]} with apply (preview off)'
                 raise RuntimeError(f'{len(missing)} of {len(chunk)} scaled replacements did not come out as requested '
                                    f'(first: {missing[0]}); {undone}; earlier verified transactions={transactions}')
             transactions.append(done['transaction'])
         result.update(transactions=transactions, preview=False, verified=len(p['merges']),
-                      undo='undo_edit(transaction, preview=False) for each id, newest first')
+                      undo='undo_edit <transaction> with apply (preview off) for each id, newest first')
         return result
 
 

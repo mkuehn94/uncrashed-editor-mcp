@@ -1,0 +1,284 @@
+{
+ "units": "metres",
+ "report_json": "/tmp/uncrashed-managed/site-3f9c1e7a2b8d4c5e9a0b1c2d3e4f5a6b.json",
+ "foliage_count": 4,
+ "foliage_truncated": false,
+ "foliage_unavailable_sources": 1,
+ "foliage": [
+  {
+   "component": "1a2b3c40",
+   "actor": null,
+   "source": "base_instance",
+   "instance": 58,
+   "masked": false,
+   "aabb": {
+    "min": [
+     -1.205,
+     3.0,
+     0.0
+    ],
+    "max": [
+     2.6,
+     7.2025,
+     14.5
+    ]
+   }
+  },
+  {
+   "component": "1a2b3c40",
+   "actor": null,
+   "source": "base_instance",
+   "instance": 59,
+   "masked": false,
+   "aabb": {
+    "min": [
+     5.0,
+     -0.8,
+     -0.05
+    ],
+    "max": [
+     7.805,
+     2.1,
+     9.8075
+    ]
+   }
+  },
+  {
+   "component": "1a2b3c40",
+   "actor": null,
+   "source": "base_instance",
+   "instance": 60,
+   "masked": true,
+   "aabb": {
+    "min": [
+     9.0,
+     9.0,
+     0.0
+    ],
+    "max": [
+     12.0,
+     12.2,
+     6.4
+    ]
+   }
+  },
+  {
+   "component": "4f5e6d00",
+   "actor": null,
+   "source": "base_instance",
+   "instance": -1,
+   "masked": false,
+   "aabb": {
+    "min": [
+     -9.0,
+     -3.0,
+     -0.1
+    ],
+    "max": [
+     -5.0,
+     1.0,
+     22.105
+    ]
+   }
+  }
+ ],
+ "placed_count": 2,
+ "placed": [
+  {
+   "actor": "17e63a10",
+   "row": "NewRow_788",
+   "aabb": {
+    "min": [
+     -10.0,
+     -20.0,
+     -0.5
+    ],
+    "max": [
+     10.0,
+     20.0,
+     15.0
+    ],
+    "center": [
+     0.0,
+     0.0,
+     7.25
+    ],
+    "size": [
+     20.0,
+     40.0,
+     15.5
+    ]
+   }
+  },
+  {
+   "actor": "17e63c30",
+   "row": "NewRow_103",
+   "aabb": {
+    "min": [
+     8.0,
+     0.0,
+     0.0
+    ],
+    "max": [
+     12.8,
+     2.0,
+     1.4
+    ],
+    "center": [
+     10.4,
+     1.0,
+     0.7
+    ],
+    "size": [
+     4.8,
+     2.0,
+     1.4
+    ]
+   }
+  }
+ ],
+ "terrain": {
+  "available": true,
+  "samples": [
+   {
+    "x": -30.0,
+    "y": -30.0,
+    "z": 12.75
+   },
+   {
+    "x": -30.0,
+    "y": -15.0,
+    "z": 12.23
+   },
+   {
+    "x": -30.0,
+    "y": 0.0,
+    "z": 12.11
+   },
+   {
+    "x": -30.0,
+    "y": 15.0,
+    "z": 11.99
+   },
+   {
+    "x": -30.0,
+    "y": 30.0,
+    "z": 11.87
+   },
+   {
+    "x": -15.0,
+    "y": -30.0,
+    "z": null
+   },
+   {
+    "x": -15.0,
+    "y": -15.0,
+    "z": 12.425
+   },
+   {
+    "x": -15.0,
+    "y": 0.0,
+    "z": 12.705
+   },
+   {
+    "x": -15.0,
+    "y": 15.0,
+    "z": 12.185
+   },
+   {
+    "x": -15.0,
+    "y": 30.0,
+    "z": 12.065
+   },
+   {
+    "x": 0.0,
+    "y": -30.0,
+    "z": 12.74
+   },
+   {
+    "x": 0.0,
+    "y": -15.0,
+    "z": 12.62
+   },
+   {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 12.5
+   },
+   {
+    "x": 0.0,
+    "y": 15.0,
+    "z": 12.38
+   },
+   {
+    "x": 0.0,
+    "y": 30.0,
+    "z": 12.66
+   },
+   {
+    "x": 15.0,
+    "y": -30.0,
+    "z": 12.935
+   },
+   {
+    "x": 15.0,
+    "y": -15.0,
+    "z": 12.815
+   },
+   {
+    "x": 15.0,
+    "y": 0.0,
+    "z": 12.695
+   },
+   {
+    "x": 15.0,
+    "y": 15.0,
+    "z": 12.575
+   },
+   {
+    "x": 15.0,
+    "y": 30.0,
+    "z": 12.455
+   },
+   {
+    "x": 30.0,
+    "y": -30.0,
+    "z": 13.13
+   },
+   {
+    "x": 30.0,
+    "y": -15.0,
+    "z": 13.41
+   },
+   {
+    "x": 30.0,
+    "y": 0.0,
+    "z": 12.89
+   },
+   {
+    "x": 30.0,
+    "y": 15.0,
+    "z": 12.77
+   },
+   {
+    "x": 30.0,
+    "y": 30.0,
+    "z": 12.65
+   }
+  ],
+  "missing": 1,
+  "elevation_range_m": [
+   11.87,
+   13.41
+  ],
+  "effective_spacing_m": [
+   15.0,
+   15.0
+  ]
+ },
+ "limitations": [
+  "Loaded geometry only; visual foliage AABBs include empty space.",
+  "Terrain grid is sampled, not exhaustive; rock/base-mesh obstacles are not a full scene inventory.",
+  "Base flora recognised by plant mesh paths. GPU-only landscape grass sources cannot expose individual transforms; reported unavailable."
+ ]
+}

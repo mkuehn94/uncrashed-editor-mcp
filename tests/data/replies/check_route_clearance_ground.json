@@ -1,0 +1,115 @@
+{
+ "mode": "ground",
+ "complete": true,
+ "summary": {
+  "collision": 1,
+  "ground_contact": 1
+ },
+ "min_clearance_m": null,
+ "overlap_only_ignored": {
+  "BoxComponent": 1
+ },
+ "gate_opening_hits_ignored": 0,
+ "collision_channel": {
+  "name": "Pawn",
+  "index": 2
+ },
+ "profile": {
+  "name": "car",
+  "kind": "ground",
+  "width": 1.9,
+  "length": 4.5,
+  "height": 1.5,
+  "margin": 0.3,
+  "half_extents_m": [
+   2.25,
+   0.95,
+   0.75
+  ],
+  "ground_clearance": 0.15
+ },
+ "route": {
+  "source": "points",
+  "laps": 1,
+  "closed": false,
+  "length_m": 30.0,
+  "samples": 16,
+  "spacing_m": 2.0,
+  "align_gates": false,
+  "drape_missing_samples": [],
+  "drape_from_m": 2.0,
+  "drape_skipped_hits": 0
+ },
+ "corridor_m": {
+  "min": 2.514,
+  "median": 3.1
+ },
+ "gates": [],
+ "issues": [
+  {
+   "kind": "collision",
+   "severity": 3,
+   "measure_m": null,
+   "obstacle": {
+    "actor": "w1",
+    "kind": "placed",
+    "class": "Actor",
+    "component_class": "StaticMeshComponent",
+    "response": "block",
+    "row": "NewRow_7"
+   },
+   "at_m": [
+    10.0,
+    0.0,
+    0.9
+   ],
+   "distance_m": 10.0,
+   "route_span_m": [
+    10.0,
+    10.0
+   ],
+   "view": {
+    "x": -10.0,
+    "y": 0.0,
+    "z": 7.9,
+    "yaw": 0.0,
+    "pitch": -19.3
+   },
+   "id": 1
+  },
+  {
+   "kind": "ground_contact",
+   "severity": 1,
+   "measure_m": null,
+   "obstacle": {
+    "actor": "rd",
+    "kind": "placed",
+    "class": "Actor",
+    "component_class": "StaticMeshComponent",
+    "response": "block",
+    "row": "NewRow_42"
+   },
+   "at_m": [
+    10.0,
+    0.0,
+    0.9
+   ],
+   "distance_m": 10.0,
+   "route_span_m": [
+    10.0,
+    14.0
+   ],
+   "view": {
+    "x": -10.0,
+    "y": 0.0,
+    "z": 7.9,
+    "yaw": 0.0,
+    "pitch": -19.3
+   },
+   "id": 2
+  }
+ ],
+ "issue_count": 2,
+ "report_json": "/tmp/uncrashed-clearance/report.json",
+ "report_html": "/tmp/uncrashed-clearance/report.html"
+}

@@ -1,0 +1,24 @@
+{
+ "image": "/tmp/uncrashed-shots/view-5b0e0f4e8c2a4d1c9a7e3f6b2d1c0a99.png",
+ "camera": {
+  "x": -63.9,
+  "y": -13.9,
+  "z": 33.0,
+  "pitch": -31.0,
+  "yaw": 45.0,
+  "roll": 0.0,
+  "fov": 90.0,
+  "held": false,
+  "backend": "native"
+ },
+ "backend": "engine",
+ "foreground": false,
+ "editor_camera_moved": false,
+ "width": 800,
+ "height": 450,
+ "render_size": [
+  1600,
+  900
+ ],
+ "freshness": "new dedicated render target"
+}
