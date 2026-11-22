@@ -1,0 +1,49 @@
+{
+ "folder": "Map_R",
+ "name": "Map R",
+ "base": "BaseBoard",
+ "track": true,
+ "instances": 1911,
+ "by_category": [
+  [
+   "Ground",
+   1600
+  ],
+  [
+   "Wall",
+   198
+  ],
+  [
+   "Big_assets",
+   54
+  ],
+  [
+   "Interractive",
+   32
+  ],
+  [
+   "Big structure",
+   17
+  ],
+  [
+   "Foliage",
+   10
+  ]
+ ],
+ "bounds_m": [
+  -80.0,
+  -80.0,
+  -0.0,
+  80.0,
+  80.0,
+  86.3
+ ],
+ "checkpoints": 8,
+ "laps": 2,
+ "weather": {
+  "timeOfDay": 17.5,
+  "northyaw": 18.0,
+  "Cloud": 0.42
+ },
+ "path": "/home/user/.local/share/Steam/steamapps/compatdata/1682970/pfx/drive_c/users/steamuser/AppData/Roaming/Uncrashed/76561190000000000/MapEditor/User/Map_R/Map_R.json"
+}

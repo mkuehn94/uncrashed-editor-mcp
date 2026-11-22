@@ -1,6 +1,7 @@
 """Pure parsing, selection, validation and assessment of native audit facts."""
 import json
 from pathlib import Path
+import tempfile
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -21,6 +22,15 @@ FOUNDATION = ('foundation samples=20 supported=12 unsupported=8 penetrating=0 mi
 ENVIRONMENT = ('environment terrain_available=1 terrain_samples=20 collision_samples=20 terrain_basis=collision_underside '
                'penetration_samples=3 max_depth=125 tree_hits=1 canopy_candidates=2 spacing=75,50\n')
 SCAN = 'scan checked=1 failed=0 terrain_available=1 foliage_instances=706 foliage_truncated=0 query_truncated=0\n'
+
+
+def setUpModule():
+    # agent.session() must not take the production lock from a test.
+    tmp = tempfile.TemporaryDirectory()
+    unittest.addModuleCleanup(tmp.cleanup)
+    lock = patch.object(env.agent, 'LOCK', Path(tmp.name)/'agent.lock')
+    lock.start()
+    unittest.addModuleCleanup(lock.stop)
 
 
 class BoundsTests(unittest.TestCase):
@@ -140,6 +150,7 @@ class AuditTests(unittest.TestCase):
     @patch.object(env.Rows, 'from_catalog', return_value=ROWS)
     def test_audit_driver_supplies_plant_exclusions_and_persists_report(self, rows):
         def run(command, *args):
+            self.assertEqual(env.agent._lock_depth, 1)  # inventory and audit chunks share one session
             p = command.split()
             def unix(path):
                 return Path(path[2:].replace('\\','/'))
@@ -152,6 +163,7 @@ class AuditTests(unittest.TestCase):
         with TemporaryDirectory() as tmp, patch.object(env,'REPORT_DIR',Path(tmp)), patch.object(env.agent,'run',side_effect=run):
             result = env.audit(None,'foundation')
             saved = json.loads(Path(result['report_json']).read_text())
+        self.assertEqual(env.agent._lock_depth, 0)
         self.assertEqual(result['checked'],1)
         self.assertEqual(saved['records'][0]['foundation']['support_coverage'],.6)
         self.assertNotIn('records',result)

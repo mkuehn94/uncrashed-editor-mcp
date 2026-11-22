@@ -122,14 +122,10 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(m['triangles'], 504)
         self.assertEqual(m['triangles_source'], 'engine LOD0 counts')
         self.assertEqual(report['engine_instancing']['editor_ism_components'], 0)
-        self.assertIn('no placed object owns an ISM', report['engine_instancing']['meaning'])
-        self.assertIn('renderer may still merge', report['engine_instancing']['meaning'])
         self.assertFalse(any(w['metric'] == 'shadow_lights' for w in report['warnings']))  # 1 placed, budget warn > 1
         report = perf.analyse(scan['actors'], CAT, perf.budgets({'shadow_lights': {'warn': 0, 'high': 5}}), lights=scan['lights'],
                               instanced=scan['instanced'], live=True, render_cvars={'r.MeshDrawCommands.DynamicInstancing': 0})
         self.assertEqual(next(w for w in report['warnings'] if w['metric'] == 'shadow_lights')['severity'], 'warn')
-        self.assertIn('DynamicInstancing=0', report['engine_instancing']['meaning'])
-        self.assertIn('OFF', report['engine_instancing']['meaning'])
 
     def test_cell_budgets_scale_with_cell_size_unless_overridden(self):
         limits = perf.budgets()

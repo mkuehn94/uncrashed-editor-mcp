@@ -1,11 +1,30 @@
 import copy
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from uncrashed_mcp import managed
+
+
+def setUpModule():
+    # agent.session() must not take the production lock from a test.
+    tmp = tempfile.TemporaryDirectory()
+    unittest.addModuleCleanup(tmp.cleanup)
+    lock = patch.object(managed.agent, 'LOCK', Path(tmp.name)/'agent.lock')
+    lock.start()
+    unittest.addModuleCleanup(lock.stop)
+
+
+class LockIsolationTests(unittest.TestCase):
+    def test_sessions_of_this_module_take_a_temp_lock(self):
+        production = Path(os.environ.get('UNCRASHED_LOCK') or '/tmp/uncrashed-agent.lock')
+        self.assertNotEqual(managed.agent.LOCK, production)
+        with managed.agent.session():
+            self.assertEqual(managed.agent.lock_holder()['pid'], os.getpid())
+        self.assertEqual(managed.agent.LOCK.read_text(), '')
 
 
 class ManagedTests(unittest.TestCase):

@@ -1,18 +1,27 @@
 # Internals
 
-An MCP server that edits the open **Uncrashed: FPV Drone Simulator** track editor live (Steam app 1682970, Unreal Engine 4.27). An agent injected into the game calls the editor's own functions, so everything placed behaves and saves like a hand-placed object. The server exposes 30 tools with short replies by default.
+A command line tool (with an optional MCP adapter) that edits the open **Uncrashed: FPV Drone Simulator** track editor live (Steam app 1682970, Unreal Engine 4.27). An agent injected into the game calls the editor's own functions, so everything placed behaves and saves like a hand-placed object. It exposes 41 operations with short replies by default.
 
 ## Run it
 
 ```bash
 python3.10 -m venv .venv
-.venv/bin/pip install -e .
-.venv/bin/python -m uncrashed_mcp
+.venv/bin/pip install -e .          # CLI: ./uc, or `uncrashed`
+.venv/bin/pip install -e '.[mcp]'   # optional: MCP server
+./uc help
 ```
 
-Use Python 3.10 or 3.11. The current `mcp` package has no wheels for Python 3.14.
+Use Python 3.10 or later; the optional `mcp` package has no wheels for Python 3.14. `./uc mcp`, `uncrashed-mcp` and `python -m uncrashed_mcp` (no arguments, stdin not a terminal) start the MCP server over stdio; all need the `mcp` extra and print a one-line hint without it. Command syntax, output format, exit codes and the MCP-to-CLI table are in [cli.md](cli.md).
 
-The server speaks MCP over stdio.
+Layout of `src/uncrashed_mcp/`:
+
+| module | role |
+| --- | --- |
+| `api.py` | one plain function per operation, their docstrings, and the `OPERATIONS` registry (parameters, CLI hints, soft-failure checks, examples). Single source of truth. Functions return values and raise on error |
+| `cli.py` | argv parser, help, dispatch, exit codes, signals; no `mcp` import |
+| `render.py` | compact lossless text renderer and its reference decoder |
+| `server.py` | thin MCP adapter generated from the registry |
+| `agent.py` | injection, command/reply files, the agent lock |
 
 Saving waits for the game's deferred JSON write to complete. A first save also initializes the new map's editor directory, so subsequent saves target the same map.
 
@@ -24,6 +33,8 @@ Override that with `UNCRASHED_MAPS_DIR`. Override the creator id with `UNCRASHED
 
 ## What an agent can call
 
+Every row is a CLI command (`./uc <name>`; MCP tool of the same name); `./uc help` lists them. Aliases: `exec` = `agent_exec`, `batch` = `agent_batch`, `log` = `agent_log`, `unload` = `agent_unload`.
+
 | tool | purpose |
 | --- | --- |
 | `status` | map folder, game running, agent loaded |
@@ -34,7 +45,7 @@ Override that with `UNCRASHED_MAPS_DIR`. Override the creator id with `UNCRASHED
 | `save_live` | save the open level with the game's own SaveMap |
 | `agent_batch` | many agent commands in one game-thread pass: the fast way to build (thousands per call) |
 | `agent_exec` | one agent command |
-| `camera_pose` / `move_camera` / `release_camera` / `capture_view` | native camera + offscreen scene images; no focus/desktop switch by default |
+| `camera_pose` / `move_camera` / `release_camera` / `capture_view` / `capture_sheet` | native camera + offscreen scene images; no focus/desktop switch by default |
 | `check_collisions` | placed-object clashes / support connectivity; writes a report page |
 | `check_foundations` | footprint support coverage, unsupported corners, base-plane gaps / penetration |
 | `check_environment` | landscape penetration, base / placed foliage collision candidates, visual canopy warnings |
@@ -45,10 +56,12 @@ Override that with `UNCRASHED_MAPS_DIR`. Override the creator id with `UNCRASHED
 | `clearing_zones` | preview/apply/remove persistent, reversible base-foliage exclusions |
 | `list_groups` / `edit_group` | group inventory, transform/clone/delete/regroup; preview first |
 | `undo_edit` / `edit_history` | durable, map-scoped transaction journals and conflict-checked undo |
+| `scene_snapshot` / `scene_diff` | read-only stamped scene snapshot beside the map; before/after diff with gate and start verdicts |
+| `check_opening` | first obstruction along a short approach -> opening -> exit path (route-clearance sweep), each finding tagged live-collision / override-active / unverified |
 | `define_assembly` / `check_assembly` | saved group roles, measured foundation anchors and cantilever-aware connectivity |
 | `agent_log` / `agent_unload` | agent log and DLL hot-swap |
 
-Everything else goes through the agent's command language (centimetres and degrees). The full list is in the server instructions; the common ones:
+Everything else goes through the agent's command language (centimetres and degrees). The full list is `./uc help verbs` (also the MCP server instructions); the common ones:
 
 ```
 spawn <row> x y z [pitch yaw roll] [sx sy sz]   place a catalogue row (pivot)
@@ -62,11 +75,11 @@ collide <file> [x0 y0 x1 y1] [gap] / trace x y z_from z_to   collision facts / o
 drop <actor|last> [step_cm] [max_cm] [embed_cm] [dry]   rest an object exactly on what is under it (last = the last spawn)
 ```
 
-Replies are cut to 40 lines unless `max_lines` asks for more (at most 400). `agent_batch` is quiet by default and reports only its summary and failures.
+Replies are cut to 40 lines unless `--max_lines` asks for more (at most 400). `batch` is quiet by default and reports only its summary and failures.
 
-The capable-agent shortcut: the catalogue is `src/uncrashed_mcp/data/assets.json`. An agent with a code sandbox can filter it directly instead of calling `search_assets`; never read it whole (about 200 KB).
+The capable-agent shortcut: the catalogue is `src/uncrashed_mcp/data/assets.json`. An agent with a code sandbox can filter it directly instead of calling `./uc search_assets`; never read it whole (about 200 KB).
 
-`BaseBoard` (Empty board) is flat at z = 0. Other bases, such as `LongRange1`, have real terrain: inspect `agent_exec("mapinfo")` before assuming a flat floor. `sample_terrain([[x, y], ...])` returns landscape heights in metres (null outside landscape). Sample a foundation's entire footprint, not just its centre. Native equivalent: `terrain x y z_from z_to` in centimetres. Unlike `trace`, this ignores foliage and placed structures; unlike `drop`, it measures bare ground, not the top of a platform. Restart an already-running MCP process after upgrading to expose the new tool.
+`BaseBoard` (Empty board) is flat at z = 0. Other bases, such as `LongRange1`, have real terrain: inspect `./uc exec mapinfo` before assuming a flat floor. `./uc sample_terrain x,y ...` returns landscape heights in metres (null outside landscape). Sample a foundation's entire footprint, not just its centre. Native equivalent: `terrain x y z_from z_to` in centimetres. Unlike `trace`, this ignores foliage and placed structures; unlike `drop`, it measures bare ground, not the top of a platform.
 
 Rows marked hidden are missing from the in-game picker and still spawn. Asphalt is one of them.
 
@@ -74,12 +87,30 @@ Rows marked hidden are missing from the in-game picker and still spawn. Asphalt 
 
 `capture_view` renders a fresh, UI-free image through the engine. Optional pose does **not** move the editor camera.
 It never activates a window or falls back to foreground capture. Native camera control no longer uses an external
-memory-writing helper. An explicit `backend="window", foreground=True` is the only capture mode allowed to focus/switch desktops.
+memory-writing helper. An explicit `--backend window --foreground` is the only capture mode allowed to focus/switch desktops.
+
+`capture_sheet` runs up to 60 explicit poses through the same engine capture, taking the agent lock per pose so other
+clients are not starved (per pose, about 1.5 s: start, three renders spaced for temporal AA/exposure, export, stop; one
+short `camera get` for the FOV) and tiles them with PIL into one labelled `sheet.png`, plus one PNG per pose and
+`index.json`. `--out` must be new or empty (no stale frames mix in) and is created at the first captured frame. A failed pose becomes a FAILED tile and an error entry;
+the CLI exits 3. Natively hidden from captures: world line batchers, the editor pawn, ruler/axis helpers and the water
+box. Gates, gate numbers, the start arch and any race guide stay visible: hiding them needs a native change
+(`HideActorComponents` for `BP_Gate_C` in `capture_hide_editor_helpers`, behind a flag). A reusable capture slot
+(`capture pose <token> ...`) would also save the per-pose actor/render-target creation.
+
+`scene_snapshot` stores one full `groups` export (row, group, native transform, actor id, session token) plus the
+`gatebox` gates as gzip JSON in `UncrashedMCP.snapshots/` beside the map, and returns a stamp with order-independent
+content and ordered gate fingerprints. `scene_diff` refuses another map folder/base or an edited snapshot, pairs objects
+by actor id in the same session and otherwise by row + nearest position within tolerance (in the same session never to
+an object that existed outside the snapshot scope, so a deleted in-scope object counts as removed), and writes the full diff to
+`UncrashedMCP.snapshots/diffs/`. Native work that would help: a filtered `groups` export (group/box, so a scoped snapshot
+does not freeze the editor for the whole map), the session token from `mapinfo`, and gate order from the saved race
+(`CheckPoints`) plus spawn points live. `edit_history` also reports `rollback_complete` parsed from the native result.
 
 New managed tools preview by default. Group changes journal before-state, support undo after handle changes, and refuse
 intervening edits. Zone/assembly intent is saved in portable map sidecars; save-as copies intent, not undo history.
 **Clearing zones require the resident DLL**; stock game alone ignores them. GPU-only landscape grass is reported
-unavailable; supported-source-only clearing needs explicit `allow_partial=True`. Assembly checks are conservative
+unavailable; supported-source-only clearing needs explicit `--allow_partial`. Assembly checks are conservative
 connectivity diagnostics, not load-bearing certification. See [workflow, limitations and verification](managed-editing.md).
 
 ## Collision check
@@ -117,20 +148,20 @@ How it decides, so the list stays short:
   collision. A trace finds their roof at about 5 m, so the box decides.
 
 `drop <actor>` fixes the commonest case, something floating above or sunk into what is under it. In a batch,
-`spawn ...` followed by `drop last` places an object and rests it in one go; the server instructions tell agents to
+`spawn ...` followed by `drop last` places an object and rests it in one go; `./uc help guide` tells agents to
 do this for anything that stands on something. It samples the
 object's footprint every 8 cm: a ray against the object alone finds its underside, a ray down from there finds the
 surface below, and the smallest gap is how far it moves (up when negative). Things resting on it are ignored as
 support. Stack bottom-up: drop the lowest object first. Objects placed or moved earlier in the same batch are
 already visible to these rays.
 
-By hand: run `collide <file> [x0 y0 x1 y1] [gap_cm]` (centimetres) through `agent_exec`, then
+By hand: run `collide <file> [x0 y0 x1 y1] [gap_cm]` (centimetres) through `./uc exec`, then
 `python -m uncrashed_mcp.collide <files>` for the same JSON and page. `trace x y z_from z_to` shows what a
 vertical ray hits at one spot, once per collision object type.
 
 ## How live editing works
 
-`native/agent.c` builds `native/uncrashed_agent.dll`. The first live call injects it into `Uncrashed-Win64-Shipping.exe` with `native/inject.exe` (same Proton prefix, `LoadLibraryW`). It stays resident and polls `/tmp/uncrashed-agent-cmd.txt`; each command runs on the game thread under a fault guard, so a bad call is reported instead of crashing the game. `agent_unload` frees it, and the next call injects a rebuilt DLL without restarting the game.
+`native/agent.c` builds `native/uncrashed_agent.dll`. The first live call injects it into `Uncrashed-Win64-Shipping.exe` with `native/inject.exe` (same Proton prefix, `LoadLibraryW`). It stays resident and polls `/tmp/uncrashed-agent-cmd.txt` (a batch goes in a per-call file `/tmp/uncrashed-agent-batch.<pid>.<n>.<token>.txt` named in the command); each command runs on the game thread under a fault guard, so a bad call is reported instead of crashing the game. `./uc unload` frees it, and the next call injects a rebuilt DLL without restarting the game.
 
 The agent calls the track editor's own Blueprint functions through `ProcessEvent`: `Spawn Asset`, `SpawnTrackAsset`, `SaveMap`, `UpdateGateListUI`, and engine functions such as `K2_SetActorLocationAndRotation` and `K2_DestroyActor`. Objects therefore behave and save exactly like ones placed by hand.
 
@@ -139,7 +170,7 @@ A different base is chosen the way the game's menu does it: the editor level reo
 `LoadLevel` on a running editor instead streams the new base in without ever removing the old one, and the
 "Loading map editor" screen never closes.
 
-Game updates: no game address is a constant. `FNamePool` and `GUObjectArray` are found by their shape in `.data`, the GWorld slot by the live `UWorld` it holds, and `ProcessEvent` by the vtable slot that actually computes `Add_IntInt(2, 3) == 5`. Every Blueprint and engine field is looked up by name through reflection. `agent_exec scan` re-resolves and prints what it found. Only an engine upgrade past UE 4.27 would need code changes; the agent then reports "layout mismatch" instead of guessing. Camera control, render-target capture and instance masking use reflected UFunctions/fields on the game thread too.
+Game updates: no game address is a constant. `FNamePool` and `GUObjectArray` are found by their shape in `.data`, the GWorld slot by the live `UWorld` it holds, and `ProcessEvent` by the vtable slot that actually computes `Add_IntInt(2, 3) == 5`. Every Blueprint and engine field is looked up by name through reflection. `./uc exec scan` re-resolves and prints what it found. Only an engine upgrade past UE 4.27 would need code changes; the agent then reports "layout mismatch" instead of guessing. Camera control, render-target capture and instance masking use reflected UFunctions/fields on the game thread too.
 
 Build the DLL (zig or mingw-w64):
 

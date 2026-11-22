@@ -1,0 +1,19 @@
+{
+ "name": "tower",
+ "roles": {
+  "tower.foot": "foundation",
+  "tower.frame": "structure",
+  "tower.roof": "cantilever",
+  "tower.decor": "decoration"
+ },
+ "objects": 5,
+ "preview": true,
+ "previous": {
+  "roles": {
+   "tower.foot": "foundation",
+   "tower.frame": "structure",
+   "tower.roof": "cantilever",
+   "tower.decor": "decoration"
+  }
+ }
+}

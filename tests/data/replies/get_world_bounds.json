@@ -1,0 +1,30 @@
+{
+ "scope": "placed",
+ "units": "metres",
+ "available": true,
+ "actor_count": 1911,
+ "truncated": false,
+ "aabb": {
+  "min": [
+   -80.125,
+   -80.0,
+   -0.004
+  ],
+  "max": [
+   80.0,
+   80.0325,
+   86.3
+  ],
+  "center": [
+   -0.0625,
+   0.01625,
+   43.148
+  ],
+  "size": [
+   160.125,
+   160.0325,
+   86.304
+  ]
+ },
+ "meaning": "Aggregate bounds of placed editor objects and gates in loaded levels."
+}

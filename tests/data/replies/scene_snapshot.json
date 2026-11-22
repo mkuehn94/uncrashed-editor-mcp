@@ -1,0 +1,29 @@
+{
+ "name": "before_bridge",
+ "map": "Map_C",
+ "base": "Base_1",
+ "session": "4d2-1f2a0000-1f2b0000-1f2c0000-9e3779b97f4a7c15",
+ "objects": 4,
+ "scope": "whole scene",
+ "scope_objects": 4,
+ "fingerprint": "cf35f4dc95ff24a9",
+ "gates": 3,
+ "gate_fingerprint": "27b479db15b17ade",
+ "start_gate": {
+  "index": 0,
+  "row": "STARTGATE",
+  "pivot_m": [
+   0,
+   0,
+   1
+  ]
+ },
+ "file": "/maps/Map_C/UncrashedMCP.snapshots/before_bridge.json.gz",
+ "warnings": [],
+ "limitations": [
+  "Snapshots hold row, group and transform of placed editor objects and gate transforms; not Blueprint, material, collision or weather state.",
+  "Gate order is the live level order (gatebox), not proven to be the saved race order; spawn height is not read.",
+  "Box and group scopes test pivots; an object that left the scope is matched against the whole scene.",
+  "A diff is geometry bookkeeping: it does not show visual quality, connectivity or that a line is flyable."
+ ]
+}

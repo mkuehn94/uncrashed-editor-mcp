@@ -13,6 +13,15 @@ def obj(actor='a',group='house',xyz=(100,0,0),rot=(0,0,0)):
     return {'actor':actor,'row':'NewRow_1','group':group,'xf':list(xyz)+list(rot)+[1,1,1]}
 
 
+def setUpModule():
+    # agent.session() must not take the production lock from a test.
+    tmp = tempfile.TemporaryDirectory()
+    unittest.addModuleCleanup(tmp.cleanup)
+    lock = patch.object(groups.agent, 'LOCK', Path(tmp.name)/'agent.lock')
+    lock.start()
+    unittest.addModuleCleanup(lock.stop)
+
+
 class GroupTests(unittest.TestCase):
     def test_full_rotation_composition_preserves_pitch_roll(self):
         original=obj(rot=(23,42,17))
@@ -89,6 +98,33 @@ class GroupTests(unittest.TestCase):
                     groups._apply({'folder':'Demo','base':'BaseBoard'},root,s,['house'],[groups.edit_line('D',obj())],'delete')
             j=json.loads(next((root/groups.HISTORY).glob('*.json')).read_text())
             self.assertEqual(j['before'],s);self.assertEqual(j['status'],'rolled_back')
+
+    def test_failed_edit_whose_recovery_snapshot_fails_too_stays_prepared_and_recoverable(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);before={'session':'s','objects':[obj('ab')]};info={'folder':'Demo','base':'BaseBoard'}
+            busy=groups.agent.AgentNotSent('agent busy: an earlier job is still running; nothing was sent')
+            with patch.object(groups.agent,'run',side_effect=groups.agent.AgentTimeout('edit did not answer')),patch.object(groups,'snapshot',side_effect=busy):
+                with self.assertRaisesRegex(RuntimeError,'edit failed; status=prepared; journal=.*edit did not answer'):
+                    groups._apply(info,root,before,['house'],[groups.edit_line('D',obj('ab'))],'delete')
+            path=next((root/groups.HISTORY).glob('*.json'));j=json.loads(path.read_text())
+            self.assertEqual((j['status'],j['error'],'after' in j),('prepared','edit did not answer',False))
+            # The timed-out edit did run: the object is gone. The journal is still usable, as a recovered one.
+            with patch.object(managed,'context',return_value=(info,root)),patch.object(groups,'snapshot',return_value={'session':'now','objects':[]}),patch.object(groups,'_apply',return_value={'transaction':'b'*32}) as apply:
+                result=groups.undo_edit(path.stem)
+                self.assertEqual((result['changes'],result['recovered']),(1,groups.RECOVERED))
+                self.assertEqual(groups.undo_edit(path.stem,preview=False)['recovered'],groups.RECOVERED)
+                self.assertTrue(apply.call_args.args[4][0].startswith('C NewRow_1 house '))
+            j=json.loads(path.read_text())
+            self.assertEqual((j['status'],j['error'],j['recovered']),('undone','edit did not answer',True))
+
+    def test_failed_edit_with_a_changed_scene_is_recovery_required_with_its_after_state(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);before={'session':'s','objects':[obj('ab')]};moved={'session':'s','objects':[obj('ab',xyz=(200,0,0))]}
+            with patch.object(groups.agent,'run',side_effect=RuntimeError('native fault')),patch.object(groups,'snapshot',return_value=moved):
+                with self.assertRaisesRegex(RuntimeError,'status=recovery_required'):
+                    groups._apply({'folder':'Demo','base':'BaseBoard'},root,before,['house'],[groups.edit_line('D',obj('ab'))],'delete')
+            j=json.loads(next((root/groups.HISTORY).glob('*.json')).read_text())
+            self.assertEqual((j['status'],j['after'],'recovered' in j),('recovery_required',moved,False))
 
     def test_undo_relocates_current_handle_after_reload(self):
         with tempfile.TemporaryDirectory() as d:

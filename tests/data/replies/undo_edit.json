@@ -1,0 +1,15 @@
+{
+ "transaction": "0f3a9c2e7b1d4856a0c9e8f7d6b5a432",
+ "preview": true,
+ "changes": 3,
+ "groups": [
+  "house.floor",
+  "house.walls"
+ ],
+ "limitations": [
+  "Move/rotate/uniform-scale preserve actors; clone/delete undo respawns catalogue rows.",
+  "Snapshots cover row, group and transform, not arbitrary Blueprint/material/animation state.",
+  "Explicit failures attempt rollback; native faults/timeouts may require journal recovery. Never retry blindly.",
+  "Undo checks whole affected groups for intervening changes; no silent overwrite."
+ ]
+}

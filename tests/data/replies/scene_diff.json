@@ -1,0 +1,111 @@
+{
+ "snapshot": "before_bridge",
+ "map": "Map_C",
+ "same_session": true,
+ "scope": "whole scene",
+ "objects_before": 4,
+ "objects_now": 4,
+ "unchanged": 1,
+ "changed": 2,
+ "added": 1,
+ "removed": 1,
+ "moved": 1,
+ "rotated": 0,
+ "scaled": 0,
+ "regrouped": 1,
+ "row_changed": 0,
+ "matched_by": {
+  "actor": 3,
+  "position": 0
+ },
+ "tolerance": {
+  "position_m": 0.01,
+  "rotation_deg": 0.1,
+  "scale": 0.001,
+  "gate_position_m": 0.01
+ },
+ "gate_order_unchanged": true,
+ "gate_transforms_unchanged": false,
+ "start_gate_unchanged": true,
+ "gate_changed_indices": [
+  2
+ ],
+ "verdicts": [
+  "identity: same map folder Map_C and base; same session, matched by actor id first",
+  "gate order: unchanged (3 -> 3 gates)",
+  "gate transforms: CHANGED beyond 0.01 m / 0.1 deg / 0.001 scale",
+  "start gate: unchanged",
+  "objects (whole scene): 2 changed, 1 added, 1 removed"
+ ],
+ "examples": [
+  {
+   "change": "moved",
+   "actor": "17e63a10",
+   "row": "NewRow_1",
+   "group": "house.a",
+   "new_group": null,
+   "pivot_m": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "delta_m": [
+    2.5,
+    0.0,
+    0.0
+   ],
+   "turn_deg": null
+  },
+  {
+   "change": "regrouped",
+   "actor": "17e63a20",
+   "row": "NewRow_1",
+   "group": "house.b",
+   "new_group": "shed",
+   "pivot_m": [
+    3.0,
+    0.0,
+    0.0
+   ],
+   "delta_m": null,
+   "turn_deg": null
+  },
+  {
+   "change": "removed",
+   "actor": "17e63a40",
+   "row": "NewRow_1",
+   "group": "house.a",
+   "new_group": null,
+   "pivot_m": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "delta_m": null,
+   "turn_deg": null
+  },
+  {
+   "change": "added",
+   "actor": "17e63b00",
+   "row": "NewRow_1",
+   "group": "house.c",
+   "new_group": null,
+   "pivot_m": [
+    7.0,
+    0.0,
+    0.0
+   ],
+   "delta_m": null,
+   "turn_deg": null
+  }
+ ],
+ "examples_truncated": false,
+ "diff_file": "/maps/Map_C/UncrashedMCP.snapshots/diffs/before_bridge-20261122-120000.json.gz",
+ "warnings": [],
+ "limitations": [
+  "Snapshots hold row, group and transform of placed editor objects and gate transforms; not Blueprint, material, collision or weather state.",
+  "Gate order is the live level order (gatebox), not proven to be the saved race order; spawn height is not read.",
+  "Box and group scopes test pivots; an object that left the scope is matched against the whole scene.",
+  "A diff is geometry bookkeeping: it does not show visual quality, connectivity or that a line is flyable."
+ ]
+}

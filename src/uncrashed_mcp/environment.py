@@ -237,7 +237,8 @@ def audit(catalog, mode: str, actors=None, region=None, spacing=.75, tolerance=.
         region = validate_region(*region)
     rows = Rows.from_catalog(catalog)
     all_records, errors, scans = [], [], []
-    with tempfile.TemporaryDirectory(prefix='uncrashed-audit-', dir='/tmp') as tmp:
+    # One session: the audit chunks use actor addresses from this inventory.
+    with agent.session(), tempfile.TemporaryDirectory(prefix='uncrashed-audit-', dir='/tmp') as tmp:
         tmp = Path(tmp)
         inv = tmp/'inventory.txt'
         agent.run(f'inventory {agent._windows_path(inv)}', 60)

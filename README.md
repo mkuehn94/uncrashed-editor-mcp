@@ -2,14 +2,14 @@
 
 # uncrashed-mcp
 
-MCP for agents to help you create maps for **Uncrashed: FPV Drone Simulator** [buy here](https://store.steampowered.com/app/1682970/Uncrashed_FPV_Drone_Simulator/), inside the game's own track editor. no one-shot, gradual refinement and inspection of the agents work. I figured this would work much better than just one-shot a json map.
+CLI (and optional MCP server) for agents to help you create maps for **Uncrashed: FPV Drone Simulator** [buy here](https://store.steampowered.com/app/1682970/Uncrashed_FPV_Drone_Simulator/), inside the game's own track editor. no one-shot, gradual refinement and inspection of the agents work. I figured this would work much better than just one-shot a json map.
 it EXPLICITLY does not simulate interacting with the UI or grabbing focus of the game, so you can let this run in the background while doing other things. 
 
 This was done with a small DLL-File which gets injected into your game and places things like you would by "hand" by called the internal functions directly, you can keep editing it normally afterwards obviously.
 
 https://github.com/user-attachments/assets/7ec006c0-9635-4eec-8eaf-969da88a30ca
 
-This is an [MCP](https://modelcontextprotocol.io) server. You can hook it into most modern agents/harnesses, open the track editor, and ask for something like *"build a small mountain village with a gate course through the main street"*. The agent places objects, looks at the result through the game's camera, fixes what's off and saves the map. You watch it happen in the editor.
+This is a command line tool (`./uc`, see [docs/cli.md](docs/cli.md)) with an optional [MCP](https://modelcontextprotocol.io) server on top. An agent with a shell tool needs no always-loaded tool schemas (about 11k tokens as MCP), reads `./uc help` only when it needs it, and feeds whole build plans from files. You can also hook the MCP server into most modern agents/harnesses. Open the track editor, and ask for something like *"build a small mountain village with a gate course through the main street"*. The agent places objects, looks at the result through the game's camera, fixes what's off and saves the map. You watch it happen in the editor.
 
 ## Examples
 
@@ -21,10 +21,10 @@ Example builts of a creative agent.
 
 ## Optimised for
 
-- **Speed.** One `agent_batch` places a whole group (up to thousands of assets) at once
-- **Visual awareness.** `capture_view` renders a compressed screenshot from an arbitrary camera pose, all that in the background.
+- **Speed.** One `./uc batch` (`agent_batch`) places a whole group (up to thousands of assets) at once
+- **Visual awareness.** `capture_view` renders a compressed screenshot from an arbitrary camera pose, all that in the background; `capture_sheet` tiles up to 60 poses into one labelled contact sheet.
 - **COllision checks.** `drop last` puts an object on whatever is under it vertex perfectly.
-- **Self checking.** It makes use of the camera to look for inconsitencies.
+- **Self checking.** It makes use of the camera to look for inconsitencies. `scene_snapshot` / `scene_diff` count what an edit really changed and whether gate order, gate transforms and the start gate stayed put. `check_opening` names the first obstruction along a short approach -> opening -> exit path and says what was not verified.
 - **Robust.** Every command runs under a custom fault guard on the game thread, meaning extra protection from crashes.
 - **Not version specific.** No hardcoded addresses. Engine globals are found dynamically, only major track editor changes might break it.
 - **Catalogue aware** Knows about the assets in the game, the bounds, collision etc.
@@ -34,7 +34,7 @@ Example builts of a creative agent.
 You need:
 
 - Linux, with Uncrashed running through Steam/Proton (Update for windows should be easy, just open in issue)
-- Python 3.10 or 3.11 for the mcp package.
+- Python 3.10 or later (the optional `mcp` package has no wheels for 3.14 yet).
 - `zig` or `mingw-w64`, to build it.
 
 **1. Install**
@@ -44,7 +44,10 @@ git clone https://github.com/<mkuehn94>/uncrashed-mcp.git
 cd uncrashed-mcp
 python3.11 -m venv .venv
 .venv/bin/pip install -e .
+./uc help
 ```
+
+`./uc` runs from the checkout; `pip install -e .` also gives you the `uncrashed` command (same thing).
 
 **2. Build the agent and injector**
 
@@ -62,9 +65,15 @@ x86_64-w64-mingw32-gcc -O2 -municode -static -o native/inject.exe native/inject.
 ```
 </details>
 
-**3. Add it to your MCP client**
+**3. Use it from a shell, or add the MCP server (optional)**
 
-Claude Code:
+An agent with a shell tool only needs to be told to run `./uc help guide` first. For MCP clients:
+
+```bash
+.venv/bin/pip install -e '.[mcp]'
+```
+
+Existing registrations that run `python -m uncrashed_mcp` keep working where the `mcp` extra is installed (without it, `python -m uncrashed_mcp` and `uncrashed-mcp` print a one-line hint). Claude Code:
 
 ```bash
 claude mcp add uncrashed -- "$PWD/.venv/bin/python" -m uncrashed_mcp
@@ -85,10 +94,10 @@ Cursor (`.cursor/mcp.json`):
 
 **4. Use it**
 
-Start the game, open the track editor, and ask your agent for something. It injects the dll and will try to accomplish your goal. It also does quick saves, so if it messes stuff up, its easily recoverable.
+Start the game, open the track editor, and ask your agent for something (or run `./uc status`, `./uc exec mapinfo` yourself). It injects the dll and will try to accomplish your goal. It also does quick saves, so if it messes stuff up, its easily recoverable.
 
 - Start on a map preset of your choice.
-- If you change `native/agent.c`, rebuild it and call `agent_unload`. The next call injects the new DLL without restarting the game.
+- If you change `native/agent.c`, rebuild it and call `./uc unload` (`agent_unload`). The next call injects the new DLL without restarting the game.
 
 ## Tests
 

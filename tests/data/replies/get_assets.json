@@ -1,0 +1,109 @@
+{
+ "assets": [
+  {
+   "id": "NewRow_788",
+   "name": "House 02",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    9.08,
+    14.5,
+    8.28
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null,
+   "collision": true,
+   "source": "SM_House_02",
+   "origin_cm": [
+    86.382,
+    -718.875,
+    371.084
+   ],
+   "extent_cm": [
+    453.811,
+    724.781,
+    413.98
+   ],
+   "bounds_estimated": false,
+   "placement": "anchor bottom_center puts the bounding-box centre on x,y and the bottom on z. The actor pivot is often a corner or an end; do not place offset meshes by the pivot."
+  },
+  {
+   "id": "NewRow_790",
+   "name": "House 04",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    11.87,
+    11.08,
+    6.8
+   ],
+   "long_axis": "x",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null,
+   "collision": true,
+   "source": "SM_House_04",
+   "origin_cm": [
+    -492.954,
+    -529.475,
+    313.434
+   ],
+   "extent_cm": [
+    593.526,
+    553.944,
+    339.841
+   ],
+   "bounds_estimated": false,
+   "placement": "anchor bottom_center puts the bounding-box centre on x,y and the bottom on z. The actor pivot is often a corner or an end; do not place offset meshes by the pivot."
+  },
+  {
+   "id": "NewRow_789",
+   "name": "House 08",
+   "category": "Big structure",
+   "kind": "mesh",
+   "tags": [
+    "building",
+    "house"
+   ],
+   "hidden": false,
+   "size_m": [
+    11.88,
+    14.64,
+    8.28
+   ],
+   "long_axis": "y",
+   "pivot": "offset",
+   "triplanar": false,
+   "material": null,
+   "collision": true,
+   "source": "SM_House_08",
+   "origin_cm": [
+    -35.924,
+    -728.822,
+    377.267
+   ],
+   "extent_cm": [
+    593.81,
+    732.021,
+    413.98
+   ],
+   "bounds_estimated": false,
+   "placement": "anchor bottom_center puts the bounding-box centre on x,y and the bottom on z. The actor pivot is often a corner or an end; do not place offset meshes by the pivot."
+  }
+ ],
+ "missing": [
+  "nope_row"
+ ]
+}

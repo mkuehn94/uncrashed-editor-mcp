@@ -1,0 +1,60 @@
+{
+ "actor": "17e63a10",
+ "units": "metres",
+ "aabb": {
+  "min": [
+   -15.235,
+   -20.0125,
+   -0.5
+  ],
+  "max": [
+   15.235,
+   20.0125,
+   14.9875
+  ],
+  "center": [
+   0.0,
+   0.0,
+   7.24375
+  ],
+  "size": [
+   30.47,
+   40.025,
+   15.4875
+  ]
+ },
+ "obb": {
+  "center": [
+   0.0,
+   0.0,
+   7.245
+  ],
+  "half_extents": [
+   10.0025,
+   20.0,
+   7.745
+  ],
+  "rotation_deg": [
+   0.0,
+   37.0,
+   0.0
+  ]
+ },
+ "transform": {
+  "actor": "17e63a10",
+  "asset": "NewRow_788",
+  "class": "Actor",
+  "x": 0.0,
+  "y": 0.0,
+  "z": 0.0,
+  "pitch": 0.0,
+  "yaw": 37.0,
+  "roll": 0.0,
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ]
+ },
+ "limitations": "AABB encloses owned components, not child actors; OBB available only for a static-mesh root. Bounds are not occupied volume."
+}

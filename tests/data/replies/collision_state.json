@@ -1,0 +1,128 @@
+{
+ "native_status": [
+  "collision rules=3 records=118 manual=2 unmatched_rules=1 config=1 base_checked=1 editor=1 failures=0 gone=4 replaced=0 components_replaced=0 editor_absent_kept=0",
+  "unmatched 2 O flythrough NewRow_788 1235.0,-4410.0,1050.0"
+ ],
+ "warnings": [
+  "Live-only: the stock game without the resident DLL ignores UncrashedMCP.collision; everyone else (and a game started without the agent) gets normal collision. Use non-colliding catalogue rows for stock-reliable scenery.",
+  "Which channel the drone / vehicles collide on is not verified: default Pawn+PhysicsBody+Vehicle. Run agent \"collision channels\" while flying and pass channels=[...] if the drone uses another object channel.",
+  "Object rules match catalogue row + pivot within 2 cm: moving an object detaches it from its rule (collision_state reports unmatched rules). Group rules survive moves.",
+  "flythrough keeps query collision (object type, Visibility, Camera), so traces, audits and editor picking still see the object; off removes it from every trace too."
+ ],
+ "rules": 2,
+ "rules_by_kind": {
+  "object": 1,
+  "group": 1,
+  "row": 0
+ },
+ "sidecar": "/maps/Map_C/UncrashedMCP.json",
+ "runtime_config": "/maps/Map_C/UncrashedMCP.collision",
+ "units": "metres",
+ "channels": [
+  "pawn",
+  "physicsbody",
+  "vehicle"
+ ],
+ "matched": 2,
+ "blocking": 0,
+ "passable": 2,
+ "modes": {
+  "on": 0,
+  "nophysics": 0,
+  "flythrough": 2,
+  "off": 0
+ },
+ "simulating": 0,
+ "objects": [
+  {
+   "actor": "17e63a10",
+   "row": "NewRow_164",
+   "group": "trees",
+   "location_m": [
+    -30.0,
+    20.5,
+    0.12
+   ],
+   "gate": false,
+   "mode": "flythrough",
+   "owner": "rule",
+   "channels": [
+    "pawn",
+    "physicsbody",
+    "vehicle"
+   ],
+   "actor_collision": true,
+   "sim": false,
+   "keep_body": false,
+   "blocks": [],
+   "components": [
+    {
+     "component": "7ff6a1c0",
+     "class": "StaticMeshComponent",
+     "enabled": 3,
+     "object_channel": "worldstatic",
+     "profile": "Custom",
+     "simulating": false,
+     "blocks": [],
+     "responses": {
+      "worldstatic": "block",
+      "worlddynamic": "block",
+      "pawn": "ignore",
+      "visibility": "block",
+      "camera": "block",
+      "physicsbody": "ignore",
+      "vehicle": "ignore"
+     }
+    }
+   ]
+  },
+  {
+   "actor": "17e63a30",
+   "row": "NewRow_788",
+   "group": "village",
+   "location_m": [
+    12.35,
+    -44.1,
+    10.5
+   ],
+   "gate": false,
+   "mode": "flythrough",
+   "owner": "rule",
+   "channels": [
+    "pawn",
+    "physicsbody",
+    "vehicle"
+   ],
+   "actor_collision": true,
+   "sim": false,
+   "keep_body": false,
+   "blocks": [],
+   "components": [
+    {
+     "component": "7ff6a1c0",
+     "class": "StaticMeshComponent",
+     "enabled": 3,
+     "object_channel": "worldstatic",
+     "profile": "Custom",
+     "simulating": false,
+     "blocks": [],
+     "responses": {
+      "worldstatic": "block",
+      "worlddynamic": "block",
+      "pawn": "ignore",
+      "visibility": "block",
+      "camera": "block",
+      "physicsbody": "ignore",
+      "vehicle": "ignore"
+     }
+    }
+   ]
+  }
+ ],
+ "enabled_legend": [
+  "NoCollision",
+  "QueryOnly",
+  "PhysicsOnly",
+  "QueryAndPhysics"
+ ]
+}

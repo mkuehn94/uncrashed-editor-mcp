@@ -1,0 +1,179 @@
+{
+ "verdict": "BLOCKED at 7.8 m, leg 1 (sample 31, t=0.2) by NewRow_8 [live-collision]; 3 unverified, 1 near-miss, 1 override-active",
+ "units": "metres",
+ "complete": true,
+ "profile": {
+  "name": "5inch",
+  "width": 0.3,
+  "length": 0.3,
+  "height": 0.1,
+  "margin": 0.5
+ },
+ "collision_channel": "Pawn",
+ "route": {
+  "length_m": 16.0,
+  "samples": 65,
+  "spacing_m": 0.25,
+  "spline_max_offset_m": 0.0,
+  "point_distance_m": [
+   0.0,
+   8.0,
+   16.0
+  ]
+ },
+ "evidence_counts": {
+  "live-collision": 3,
+  "override-active": 1,
+  "bounds-estimate": 0,
+  "unverified": 1
+ },
+ "first_obstruction": {
+  "distance_m": 7.8,
+  "leg": 1,
+  "sample": 31,
+  "time": 0.2,
+  "kind": "blocked",
+  "evidence": "live-collision",
+  "measure_m": null,
+  "hits": 1,
+  "actor": "b2",
+  "row": "NewRow_8",
+  "name": null,
+  "class": "StaticMeshActor",
+  "component_class": "StaticMeshComponent",
+  "why": "sweep hit, blocking response",
+  "impact_m": [
+   0.0,
+   -0.25,
+   4.0
+  ],
+  "start_penetrating": false,
+  "at_m": [
+   0.0,
+   -0.25,
+   4.0
+  ],
+  "view": {
+   "x": -0.0,
+   "y": -3.45,
+   "z": 5.12,
+   "yaw": 90.0,
+   "pitch": -19.3
+  }
+ },
+ "findings": [
+  {
+   "distance_m": 5.125,
+   "leg": 1,
+   "sample": 20,
+   "time": 0.5,
+   "kind": "passed_by_override",
+   "evidence": "override-active",
+   "measure_m": null,
+   "hits": 1,
+   "actor": "f1",
+   "row": "NewRow_3",
+   "name": null,
+   "class": "StaticMeshActor",
+   "component_class": "StaticMeshComponent",
+   "why": "not blocking live because of DLL override mode=flythrough; stock may block"
+  },
+  {
+   "distance_m": 7.8,
+   "leg": 1,
+   "sample": 31,
+   "time": 0.2,
+   "kind": "blocked",
+   "evidence": "live-collision",
+   "measure_m": null,
+   "hits": 1,
+   "actor": "b2",
+   "row": "NewRow_8",
+   "name": null,
+   "class": "StaticMeshActor",
+   "component_class": "StaticMeshComponent",
+   "why": "sweep hit, blocking response"
+  },
+  {
+   "distance_m": 7.925,
+   "leg": 1,
+   "sample": 31,
+   "time": 0.7,
+   "kind": "blocked",
+   "evidence": "live-collision",
+   "measure_m": null,
+   "hits": 1,
+   "actor": "a1",
+   "row": "NewRow_7",
+   "name": null,
+   "class": "StaticMeshActor",
+   "component_class": "StaticMeshComponent",
+   "why": "sweep hit, blocking response"
+  },
+  {
+   "distance_m": 11.025,
+   "leg": 2,
+   "sample": 44,
+   "time": 0.1,
+   "kind": "blocked",
+   "evidence": "unverified",
+   "measure_m": null,
+   "hits": 1,
+   "actor": "u1",
+   "row": "NewRow_9",
+   "name": null,
+   "class": "StaticMeshActor",
+   "component_class": "StaticMeshComponent",
+   "why": "collision response unknown; counted as blocking"
+  },
+  {
+   "distance_m": 13.0,
+   "leg": 2,
+   "sample": 52,
+   "time": null,
+   "kind": "near_miss_tight",
+   "evidence": "live-collision",
+   "measure_m": 0.25,
+   "hits": 1,
+   "actor": "n1",
+   "row": "NewRow_5",
+   "name": null,
+   "class": "StaticMeshActor",
+   "component_class": "StaticMeshComponent",
+   "why": "probe 0.25 m from the body, margin 0.5 m"
+  }
+ ],
+ "finding_count": 5,
+ "unverified_objects": [
+  {
+   "actor": "bp",
+   "row": "NewRow_1",
+   "name": null,
+   "mode": "on",
+   "reason": "no trace data: may lack query collision (Blueprint) or be out of reach"
+  },
+  {
+   "actor": "off1",
+   "row": "NewRow_2",
+   "name": null,
+   "mode": "off",
+   "reason": "collision off override: invisible to traces"
+  }
+ ],
+ "unverified_object_count": 2,
+ "notes": [
+  "the spline rounds the path through your points (see spline_max_offset_m)",
+  "the swept box is the craft body only; margin applies to probe near-misses"
+ ],
+ "report_json": "/tmp/uncrashed-clearance/opening-20260101-120000-aaaaaaaa.json",
+ "limitations": [
+  "The path is a centripetal Catmull-Rom spline through your points: corners are rounded (spline_max_offset_m), it is not a recorded flight line.",
+  "The swept box is the craft body only (no margin, no banking or roll, no prop wash or flight dynamics); margin_m is applied to probe clearances (near-miss) only.",
+  "Evidence is the LIVE collision state of the open editor with the resident DLL; stock Uncrashed ignores MCP collision overrides. override-active findings were not tested with stock collision.",
+  "Which channel the drone really collides as is not verified (default Pawn); unknown responses count as blocking.",
+  "Objects with collision off are invisible to traces; Blueprint buildings can have floors without query collision, so no hit next to an unverified object is not clearance.",
+  "Nearby objects are found by pivot inside the path box widened by near_m: large objects with a far pivot can be missed.",
+  "Probes run in 16 horizontal directions plus up/down from each sample, not in every direction.",
+  "Geometry check only: not a flight test, visual check or proof that the line is flyable."
+ ]
+}

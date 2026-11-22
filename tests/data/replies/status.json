@@ -1,0 +1,11 @@
+{
+ "game_running": true,
+ "steam_id": "76561190000000000",
+ "maps_dir": "/home/user/.local/share/Steam/steamapps/compatdata/1682970/pfx/drive_c/users/steamuser/AppData/Roaming/Uncrashed/76561190000000000/MapEditor/User",
+ "workshop_items": 52,
+ "assets": 804,
+ "flat_base": "BaseBoard",
+ "reload": "Call load_live with a map name to show a saved map in the open editor.",
+ "live_agent": false,
+ "units": "metres, yaw degrees, Z up"
+}

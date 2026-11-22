@@ -1,0 +1,795 @@
+{
+ "metrics": {
+  "placed_objects": 1911,
+  "gates": 0,
+  "level_actors": null,
+  "non_editor_actors": null,
+  "blueprint_objects": 33,
+  "triangles": 440108,
+  "triangles_source": "catalogue hull estimate",
+  "shadow_casters": null,
+  "never_culled": null,
+  "physics_objects": null,
+  "collision_objects": 1911,
+  "mesh_components": null,
+  "grid_cells": 16,
+  "cell_m": 50,
+  "possible_light_objects": 32,
+  "dynamic_lights": null,
+  "shadow_lights": null
+ },
+ "per_category": {
+  "Ground": 1600,
+  "Wall": 198,
+  "Big_assets": 54,
+  "Interractive": 32,
+  "Big structure": 17,
+  "Foliage": 10
+ },
+ "per_kind": {
+  "mesh": 1878,
+  "blueprint": 33
+ },
+ "top_rows": [
+  {
+   "row": "NewRow_185",
+   "name": "Pavement 03",
+   "category": "Ground",
+   "kind": "mesh",
+   "count": 718,
+   "triplanar": true,
+   "triangles_each": 12,
+   "triangles_total": 8616
+  },
+  {
+   "row": "NewRow_181",
+   "name": "Gravel",
+   "category": "Ground",
+   "kind": "mesh",
+   "count": 578,
+   "triplanar": true,
+   "triangles_each": 12,
+   "triangles_total": 6936
+  },
+  {
+   "row": "NewRow_182",
+   "name": "Asphalt",
+   "category": "Ground",
+   "kind": "mesh",
+   "count": 304,
+   "triplanar": true,
+   "triangles_each": 12,
+   "triangles_total": 3648
+  },
+  {
+   "row": "NewRow_122",
+   "name": "Concrete Column01Bis",
+   "category": "Wall",
+   "kind": "mesh",
+   "count": 104,
+   "triplanar": true,
+   "triangles_each": 108,
+   "triangles_total": 11232
+  },
+  {
+   "row": "NewRow_303",
+   "name": "Concrete Floor01",
+   "category": "Wall",
+   "kind": "mesh",
+   "count": 48,
+   "triplanar": true,
+   "triangles_each": 34,
+   "triangles_total": 1632
+  },
+  {
+   "row": "NewRow_318",
+   "name": "Concrete Wall01",
+   "category": "Wall",
+   "kind": "mesh",
+   "count": 46,
+   "triplanar": true,
+   "triangles_each": 34,
+   "triangles_total": 1564
+  },
+  {
+   "row": "NewRow_3",
+   "name": "Lights Night ME",
+   "category": "Interractive",
+   "kind": "blueprint",
+   "count": 32,
+   "triplanar": false,
+   "triangles_each": 0,
+   "triangles_total": 0
+  },
+  {
+   "row": "NewRow_157",
+   "name": "Scafold 01a",
+   "category": "Big_assets",
+   "kind": "mesh",
+   "count": 11,
+   "triplanar": false,
+   "triangles_each": 7646,
+   "triangles_total": 84106
+  },
+  {
+   "row": "NewRow_164",
+   "name": "Bush5 01",
+   "category": "Foliage",
+   "kind": "mesh",
+   "count": 10,
+   "triplanar": false,
+   "triangles_each": 1662,
+   "triangles_total": 16620
+  },
+  {
+   "row": "NewRow_1",
+   "name": "container green",
+   "category": "Big_assets",
+   "kind": "mesh",
+   "count": 8,
+   "triplanar": false,
+   "triangles_each": 5088,
+   "triangles_total": 40704
+  }
+ ],
+ "top_rows_by_triangles": [
+  {
+   "row": "NewRow_157",
+   "name": "Scafold 01a",
+   "count": 11,
+   "triangles_total": 84106
+  },
+  {
+   "row": "NewRow_1",
+   "name": "container green",
+   "count": 8,
+   "triangles_total": 40704
+  },
+  {
+   "row": "NewRow_26",
+   "name": "container green",
+   "count": 8,
+   "triangles_total": 40704
+  },
+  {
+   "row": "NewRow_27",
+   "name": "container green",
+   "count": 8,
+   "triangles_total": 40704
+  },
+  {
+   "row": "NewRow_28",
+   "name": "container green",
+   "count": 8,
+   "triangles_total": 40704
+  },
+  {
+   "row": "NewRow_775",
+   "name": "Kangoo",
+   "count": 3,
+   "triangles_total": 21474
+  },
+  {
+   "row": "NewRow_164",
+   "name": "Bush5 01",
+   "count": 10,
+   "triangles_total": 16620
+  },
+  {
+   "row": "NewRow_793",
+   "name": "House 18",
+   "count": 2,
+   "triangles_total": 13604
+  },
+  {
+   "row": "NewRow_322",
+   "name": "Grain Silo 1",
+   "count": 2,
+   "triangles_total": 12538
+  },
+  {
+   "row": "NewRow_95",
+   "name": "Old Workshop 01 02",
+   "count": 2,
+   "triangles_total": 11946
+  }
+ ],
+ "densest_cells": [
+  {
+   "center_m": [
+    -25.0,
+    25.0,
+    0.1
+   ],
+   "objects": 216,
+   "triangles": 13422,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 90
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 46
+    },
+    {
+     "row": "NewRow_122",
+     "name": "Concrete Column01Bis",
+     "count": 35
+    }
+   ],
+   "camera": {
+    "x": -63.9,
+    "y": -13.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    25.0,
+    -25.0,
+    0.1
+   ],
+   "objects": 185,
+   "triangles": 80189,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 90
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 46
+    },
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 20
+    }
+   ],
+   "camera": {
+    "x": -13.9,
+    "y": -63.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    -25.0,
+    -25.0,
+    0.2
+   ],
+   "objects": 180,
+   "triangles": 28993,
+   "top_rows": [
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 121
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 48
+    },
+    {
+     "row": "NewRow_3",
+     "name": "Lights Night ME",
+     "count": 6
+    }
+   ],
+   "camera": {
+    "x": -63.9,
+    "y": -63.9,
+    "z": 33.2,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    -25.0,
+    75.0,
+    0.1
+   ],
+   "objects": 161,
+   "triangles": 5372,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 80
+    },
+    {
+     "row": "NewRow_122",
+     "name": "Concrete Column01Bis",
+     "count": 30
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 16
+    }
+   ],
+   "camera": {
+    "x": -63.9,
+    "y": 36.1,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    25.0,
+    25.0,
+    0.2
+   ],
+   "objects": 159,
+   "triangles": 19655,
+   "top_rows": [
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 100
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 44
+    },
+    {
+     "row": "NewRow_164",
+     "name": "Bush5 01",
+     "count": 6
+    }
+   ],
+   "camera": {
+    "x": -13.9,
+    "y": -13.9,
+    "z": 33.2,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    -75.0,
+    25.0,
+    0.1
+   ],
+   "objects": 128,
+   "triangles": 42084,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 63
+    },
+    {
+     "row": "NewRow_122",
+     "name": "Concrete Column01Bis",
+     "count": 21
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 14
+    }
+   ],
+   "camera": {
+    "x": -113.9,
+    "y": -13.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    75.0,
+    -25.0,
+    0.0
+   ],
+   "objects": 114,
+   "triangles": 36004,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 80
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 16
+    },
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 8
+    }
+   ],
+   "camera": {
+    "x": 36.1,
+    "y": -63.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    25.0,
+    -75.0,
+    0.0
+   ],
+   "objects": 103,
+   "triangles": 77430,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 63
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 14
+    },
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 7
+    }
+   ],
+   "camera": {
+    "x": -13.9,
+    "y": -113.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    75.0,
+    25.0,
+    0.2
+   ],
+   "objects": 102,
+   "triangles": 14958,
+   "top_rows": [
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 80
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 16
+    },
+    {
+     "row": "NewRow_164",
+     "name": "Bush5 01",
+     "count": 4
+    }
+   ],
+   "camera": {
+    "x": 36.1,
+    "y": -13.9,
+    "z": 33.2,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    -75.0,
+    75.0,
+    0.0
+   ],
+   "objects": 101,
+   "triangles": 49206,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 56
+    },
+    {
+     "row": "NewRow_122",
+     "name": "Concrete Column01Bis",
+     "count": 18
+    },
+    {
+     "row": "NewRow_318",
+     "name": "Concrete Wall01",
+     "count": 12
+    }
+   ],
+   "camera": {
+    "x": -113.9,
+    "y": 36.1,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  }
+ ],
+ "heaviest_cells": [
+  {
+   "center_m": [
+    25.0,
+    -25.0,
+    0.1
+   ],
+   "objects": 185,
+   "triangles": 80189,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 90
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 46
+    },
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 20
+    }
+   ],
+   "camera": {
+    "x": -13.9,
+    "y": -63.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    25.0,
+    -75.0,
+    0.0
+   ],
+   "objects": 103,
+   "triangles": 77430,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 63
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 14
+    },
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 7
+    }
+   ],
+   "camera": {
+    "x": -13.9,
+    "y": -113.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    -75.0,
+    75.0,
+    0.0
+   ],
+   "objects": 101,
+   "triangles": 49206,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 56
+    },
+    {
+     "row": "NewRow_122",
+     "name": "Concrete Column01Bis",
+     "count": 18
+    },
+    {
+     "row": "NewRow_318",
+     "name": "Concrete Wall01",
+     "count": 12
+    }
+   ],
+   "camera": {
+    "x": -113.9,
+    "y": 36.1,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    -75.0,
+    25.0,
+    0.1
+   ],
+   "objects": 128,
+   "triangles": 42084,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 63
+    },
+    {
+     "row": "NewRow_122",
+     "name": "Concrete Column01Bis",
+     "count": 21
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 14
+    }
+   ],
+   "camera": {
+    "x": -113.9,
+    "y": -13.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  },
+  {
+   "center_m": [
+    75.0,
+    -25.0,
+    0.0
+   ],
+   "objects": 114,
+   "triangles": 36004,
+   "top_rows": [
+    {
+     "row": "NewRow_181",
+     "name": "Gravel",
+     "count": 80
+    },
+    {
+     "row": "NewRow_182",
+     "name": "Asphalt",
+     "count": 16
+    },
+    {
+     "row": "NewRow_185",
+     "name": "Pavement 03",
+     "count": 8
+    }
+   ],
+   "camera": {
+    "x": 36.1,
+    "y": -63.9,
+    "z": 33.0,
+    "yaw": 45.0,
+    "pitch": -31.0
+   }
+  }
+ ],
+ "engine_instancing": null,
+ "warnings": [
+  {
+   "severity": "warn",
+   "metric": "row_count",
+   "value": 718,
+   "warn_at": 500,
+   "high_at": 2000,
+   "budget": "placed copies of one row",
+   "message": "718 x Pavement 03 (NewRow_185)",
+   "advice": "triplanar: consolidate_scenery may merge edge-to-edge runs"
+  },
+  {
+   "severity": "warn",
+   "metric": "row_count",
+   "value": 578,
+   "warn_at": 500,
+   "high_at": 2000,
+   "budget": "placed copies of one row",
+   "message": "578 x Gravel (NewRow_181)",
+   "advice": "triplanar: consolidate_scenery may merge edge-to-edge runs"
+  }
+ ],
+ "status": "warn",
+ "source": "/home/user/.local/share/Steam/steamapps/compatdata/1682970/pfx/drive_c/users/steamuser/AppData/Roaming/Uncrashed/76561190000000000/MapEditor/User/Map_R/Map_R.json",
+ "mode": "offline",
+ "row_flags": "unavailable",
+ "consolidation": {
+  "objects_removed": 1767,
+  "objects_added": 78,
+  "saved": 1689
+ },
+ "region_m": null,
+ "budgets": {
+  "placed_objects": {
+   "warn": 4000,
+   "high": 10000
+  },
+  "mesh_components": {
+   "warn": 5000,
+   "high": 12000
+  },
+  "blueprint_objects": {
+   "warn": 300,
+   "high": 1000
+  },
+  "triangles": {
+   "warn": 8000000.0,
+   "high": 25000000.0
+  },
+  "shadow_casters": {
+   "warn": 4000,
+   "high": 10000
+  },
+  "never_culled": {
+   "warn": 2000,
+   "high": 6000
+  },
+  "dynamic_lights": {
+   "warn": 16,
+   "high": 48
+  },
+  "shadow_lights": {
+   "warn": 4,
+   "high": 12
+  },
+  "physics_objects": {
+   "warn": 50,
+   "high": 200
+  },
+  "cell_objects": {
+   "warn": 300,
+   "high": 800
+  },
+  "cell_triangles": {
+   "warn": 1500000.0,
+   "high": 4000000.0
+  },
+  "row_count": {
+   "warn": 500,
+   "high": 2000
+  },
+  "frame_ms_avg": {
+   "warn": 16.7,
+   "high": 33.3
+  },
+  "frame_ms_p95": {
+   "warn": 25.0,
+   "high": 50.0
+  }
+ },
+ "limitations": [
+  "Budgets are heuristic UE4 defaults (override them), not limits measured for Uncrashed or your GPU.",
+  "Triangle estimates come from the extracted LOD0 hull: exact for meshes under ~8000 triangles, capped near 8000 for detailed ones, unknown (0) for Blueprint rows unless the live engine exposes a count. LODs are not modelled.",
+  "Offline mode cannot see lights, shadows, culling or physics unless row flags were cached by a live run.",
+  "Frame time is sampled once per agent job (~50-100 ms apart) in the editor, not in flight; it is a coarse sample. VSync, t.MaxFPS, the engine smoothed frame-rate range and an unfocused/background window can all raise it above the real cost.",
+  "Live shadow/cull/physics/mesh-component budgets grade placed objects only; *_base figures (landscape, foliage, base-map actors) are informational because the map editor cannot change them."
+ ],
+ "report_json": "/tmp/uncrashed-perf/performance-report.json"
+}

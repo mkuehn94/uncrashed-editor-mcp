@@ -23,7 +23,7 @@ LIMITATIONS = [
     'Move/rotate/uniform-scale preserve actors; clone/delete undo respawns catalogue rows.',
     'Snapshots cover row, group and transform, not arbitrary Blueprint/material/animation state.',
     'Explicit failures attempt rollback; native faults/timeouts may require journal recovery. Never retry blindly.',
-    'Undo checks whole affected groups for intervening changes; no silent overwrite.',
+    'Undo checks whole affected groups for intervening changes; no silent overwrite (except a journal recovered after an interrupted apply, which says so).',
 ]
 
 
@@ -144,6 +144,11 @@ def _xf(o: dict) -> str:
     return ' '.join(f'{float(v):.9g}' for v in o['xf'])
 
 
+RECOVERED = ('journal was left prepared by an interrupted apply; its after-state was taken from the live scene, '
+             'so the undo also reverts later changes to these groups')
+INTERRUPTED = 'journal was interrupted; run the preview first'
+
+
 def edit_line(kind: str, before: dict | None = None, after: dict | None = None) -> str:
     if kind == 'C':
         return f'C {after["row"]} {after["group"]} {_xf(after)}'
@@ -181,14 +186,18 @@ def _apply(info: dict, root: Path, before: dict, affected: list[str], commands: 
             journal.update(status='applied', after=after, native_result=text)
             _write_journal(path,journal)
         except Exception as exc:
-            journal.update(status='recovery_required', error=str(exc),
-                           native_result=result.read_text() if result.exists() else None)
+            journal.update(error=str(exc), native_result=result.read_text() if result.exists() else None)
             try:
                 journal['after'] = scoped(snapshot(),affected)
-                match_states(before['objects'],journal['after']['objects'])
-                journal['status'] = 'rolled_back'
             except Exception:
-                pass
+                pass  # outcome unknown: the journal stays 'prepared' and undo_edit classifies it from the scene later
+            else:
+                journal['status'] = 'recovery_required'
+                try:
+                    match_states(before['objects'],journal['after']['objects'])
+                    journal['status'] = 'rolled_back'
+                except Exception:
+                    pass
             _write_journal(path,journal)
             raise RuntimeError(f'edit failed; status={journal["status"]}; journal={path}; inspect before undo/retry: {exc}') from exc
     return {'transaction': transaction, 'journal': str(path), 'changed': len(commands), 'preview': False,
@@ -245,6 +254,12 @@ def edit_group(group: str = '', action: str = 'transform', delta: list | None = 
 
 
 def undo_edit(transaction: str, preview: bool = True) -> dict:
+    """Preview or apply the inverse of a journaled edit; refuses when its groups changed since the edit.
+
+    A journal left 'prepared' by an interrupted apply has no after-state. The preview takes it from the
+    live scene, so that undo also reverts whatever was done to these groups later: the journal keeps
+    'recovered', every later preview and apply repeats the note, and the first call must be a preview.
+    """
     if not re_transaction(transaction):
         raise ValueError('transaction must be a 32-character lowercase hex id')
     with agent.session():
@@ -253,6 +268,22 @@ def undo_edit(transaction: str, preview: bool = True) -> dict:
         journal = json.loads(path.read_text())
         if journal.get('version')!=1 or journal.get('map')!=info['folder'] or journal.get('base')!=info['base']:
             raise ValueError('journal map/base/version mismatch')
+        if journal.get('status')=='prepared':
+            if not preview:
+                raise ValueError(f'{INTERRUPTED}: it shows what an undo would revert, including later changes to these groups')
+            # The applying process ended before recording an outcome. Classify it from the live
+            # scene as _apply's failure path does; later edits to these groups count as its result.
+            after = scoped(snapshot(),journal['groups'])
+            journal.update(status='recovery_required', after=after, recovered=True)
+            journal.setdefault('error','apply was interrupted before its outcome was recorded')
+            try:
+                match_states(journal['before']['objects'],after['objects'])
+                journal['status'] = 'rolled_back'
+            except Exception:
+                pass
+            _write_journal(path,journal)
+            if journal['status']=='rolled_back':
+                raise ValueError('interrupted transaction changed nothing; journal marked rolled_back, nothing to undo')
         if journal.get('status') not in ('applied','recovery_required') or 'after' not in journal:
             raise ValueError('transaction is not undoable; inspect journal status')
         # Undo only last unsuperseded state, not last entry blindly.
@@ -260,11 +291,12 @@ def undo_edit(transaction: str, preview: bool = True) -> dict:
         matched = match_states(journal['after']['objects'],current['objects'])
         before_ids = {o['actor']:o for o in journal['before']['objects']}
         after_ids = {o['actor']:o for o in journal['after']['objects']}
-        commands=[]
+        commands, added = [], 0
         for old_id,now in matched.items():
             wanted = before_ids.get(old_id)
             if wanted is None:
                 commands.append(edit_line('D',now))
+                added += 1
             elif not same_object(now,wanted):
                 commands.append(edit_line('T',now,wanted))
         for old_id,wanted in before_ids.items():
@@ -272,12 +304,32 @@ def undo_edit(transaction: str, preview: bool = True) -> dict:
                 commands.append(edit_line('C',after=wanted))
         if not commands:
             raise ValueError('transaction already matches original state')
+        # Persisted, not derived from the status: the recovering preview has already rewritten that.
+        recovered = {'recovered': RECOVERED} if journal.get('recovered') else {}
+        if rollback_complete(journal) is not None:
+            recovered['rollback_complete'] = rollback_complete(journal)
         if preview:
-            return {'transaction': transaction, 'preview': True, 'changes': len(commands), 'groups': journal['groups'], 'limitations': LIMITATIONS}
+            # deletes_not_in_before: objects the undo deletes because the before-snapshot does not have them
+            return {'transaction': transaction, 'preview': True, 'changes': len(commands), 'deletes_not_in_before': added,
+                    'groups': journal['groups'], 'limitations': LIMITATIONS, **recovered}
         result = _apply(info,root,current,journal['groups'],commands,f'undo {transaction}')
         journal.update(status='undone',undo_transaction=result['transaction'])
         _write_journal(path,journal)
+        result.update(recovered)
         return result
+
+
+def rollback_complete(journal: dict) -> bool | None:
+    """The native 'rollback complete=N' line of a failed edit's result, or None when the journal has none."""
+    text = journal.get('native_result')
+    if not isinstance(text, str):
+        return None
+    for line in text.splitlines():
+        if line.startswith('rollback complete='):
+            value = line.split('=', 1)[1].strip()
+            if value in ('0', '1'):
+                return value == '1'
+    return None
 
 
 def re_transaction(value: str) -> bool:
@@ -292,5 +344,7 @@ def edit_history(limit: int = 20) -> dict:
     entries=[]
     for path in paths[:limit]:
         data=json.loads(path.read_text())
-        entries.append({k:data.get(k) for k in ('id','label','status','created','groups','undo_transaction')})
+        entry = {k:data.get(k) for k in ('id','label','status','created','groups','undo_transaction')}
+        entry['rollback_complete'] = rollback_complete(data)
+        entries.append(entry)
     return {'transactions': entries, 'total': len(paths), 'directory': str(root/HISTORY)}

@@ -1,0 +1,136 @@
+{
+ "mode": "environment",
+ "units": "metres",
+ "selected": 3,
+ "checked": 3,
+ "errors": [],
+ "findings": {
+  "terrain_penetration": 1,
+  "foliage_collision_candidate": 1,
+  "canopy_bounds_overlap_warning": 1
+ },
+ "objects_with_findings": 1,
+ "unknown_objects": 1,
+ "sampling_complete": false,
+ "truncated": false,
+ "parameters": {
+  "region": null,
+  "spacing_m": 0.75,
+  "tolerance_m": 0.1,
+  "max_drop_m": 50.0,
+  "include_canopies": true,
+  "include_structural": false
+ },
+ "limitations": [
+  "Read-only heuristic diagnostics, not structural certification or a flight test.",
+  "Foundation coverage uses the bounds base plane: eaves, arches, stilts and intentional cantilevers need manual review.",
+  "Physics foliage findings test a subject OBB against base/placed-foliage collision, not exact mesh-versus-mesh intersection.",
+  "Canopy warnings compare visual AABBs of loaded base instances and placed plants taller than 2 m; sparse crowns may not intersect actual geometry.",
+  "Only loaded levels/instances are measured; detail lists capped at 12 per actor. Grid intervals capped at 32 per axis; effective spacing reported.",
+  "Base flora recognised by plant mesh paths. GPU-only landscape grass cannot expose instance transforms; unavailable-source counts make canopy coverage incomplete."
+ ],
+ "top": [
+  {
+   "actor": "17e63a10",
+   "row": "House",
+   "name": "House",
+   "status": "review",
+   "issues": [
+    "terrain_penetration",
+    "foliage_collision_candidate",
+    "canopy_bounds_overlap_warning"
+   ],
+   "environment": {
+    "terrain_samples": 20,
+    "collision_samples": 20,
+    "penetration_samples": 3,
+    "tree_hits": 2,
+    "canopy_candidates": 1,
+    "terrain_available": true,
+    "terrain_basis": "collision_underside",
+    "max_terrain_penetration_m": 1.25,
+    "effective_spacing_m": [
+     0.75,
+     0.5
+    ]
+   },
+   "at_m": [
+    0.0,
+    0.0,
+    -0.5
+   ],
+   "bounds_basis": "mesh_obb",
+   "footprint_basis": "unknown",
+   "examples": [
+    {
+     "x": 0.0,
+     "y": 0.0,
+     "bottom": -5.0,
+     "terrain_z": -3.75,
+     "penetration_m": 1.25
+    },
+    {
+     "x": 1.005,
+     "y": 0.0,
+     "bottom": -4.7,
+     "terrain_z": -3.8025,
+     "penetration_m": 0.8975
+    }
+   ],
+   "tree_collisions": [
+    {
+     "actor": "17e64d00",
+     "component": "StaticMeshComponent0",
+     "instance": 58,
+     "source": "unknown"
+    },
+    {
+     "actor": "17e64e40",
+     "component": "c",
+     "instance": -1,
+     "source": "placed"
+    }
+   ],
+   "canopy_candidates": [
+    {
+     "actor": "17e64d00",
+     "component": "InstancedFoliage",
+     "instance": 61,
+     "source": "base"
+    }
+   ]
+  },
+  {
+   "actor": "17e63c30",
+   "row": "Car",
+   "name": "Camaro",
+   "status": "unknown",
+   "issues": [],
+   "environment": {
+    "terrain_samples": 0,
+    "collision_samples": 0,
+    "penetration_samples": 0,
+    "tree_hits": 0,
+    "canopy_candidates": 0,
+    "terrain_available": true,
+    "terrain_basis": "collision_underside",
+    "max_terrain_penetration_m": 0.0,
+    "effective_spacing_m": [
+     0.8,
+     0.666667
+    ]
+   },
+   "at_m": [
+    82.4,
+    1.0,
+    0.0
+   ],
+   "bounds_basis": "mesh_obb",
+   "footprint_basis": "unknown",
+   "examples": [],
+   "tree_collisions": [],
+   "canopy_candidates": []
+  }
+ ],
+ "report_json": "/tmp/uncrashed-audit/environment-report.json"
+}

@@ -1,0 +1,28 @@
+{
+ "action": "upsert",
+ "name": "court",
+ "preview": true,
+ "zone": {
+  "center": [
+   1.5,
+   2.25,
+   3.0
+  ],
+  "size": [
+   40.0,
+   60.0,
+   30.0
+  ],
+  "yaw": 45.0,
+  "allow_partial": false
+ },
+ "candidate_instances": 2,
+ "currently_masked_candidates": 1,
+ "unavailable_sources": 2,
+ "limitations": [
+  "Whole base-foliage instances hidden by conservative visual bounds; not branch trimming.",
+  "Overlapping zones form a union. Removing one zone may leave instances masked by others.",
+  "Portable sidecars must accompany map. Resident DLL reapplies after reload; stock game alone does not.",
+  "GPU-only landscape grass cannot be individually cleared; allow_partial explicitly accepts skipping unavailable sources."
+ ]
+}

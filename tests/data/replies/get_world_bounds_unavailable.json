@@ -1,0 +1,9 @@
+{
+ "scope": "playable",
+ "units": "metres",
+ "available": false,
+ "actor_count": 0,
+ "truncated": false,
+ "aabb": null,
+ "meaning": "Only actors explicitly tagged PlayableBounds; unknown when none are tagged. Aggregate AABB, not the exact boundary shape."
+}

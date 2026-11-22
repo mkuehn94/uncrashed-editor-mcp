@@ -1,0 +1,2118 @@
+{
+ "instructions": "Edit Uncrashed: FPV Drone Simulator's track editor live. An agent injected into the game calls the editor's own\nfunctions (Spawn Asset, SpawnTrackAsset, SaveMap); nothing is clicked and every change is visible at once.\n\nWork like this: look up rows with search_assets / get_assets, write the commands, send many at once with\nagent_batch (one game-thread pass, thousands of placements), look with capture_view, fix, then save with\nsave_live. agent_exec runs a single command. Check mapinfo first: only BaseBoard is a flat grid at z=0.\nOn landscape bases, sample_terrain measures bare ground through trees and structures (metres); sample the\nwhole footprint before choosing a foundation elevation. It does not measure platform or building roofs.\n\nAnything that should stand on something (a car on the road, a crate on a shelf, a car on a car) goes down with\ndrop: spawn it a little high, then \"drop last\" on the next line of the same batch rests it exactly on what is under\nit, using the real shapes of both. Stack bottom-up. Ground tiles sit 9 to 13 cm above z=0, so an object spawned at\nz=0 on a tile is sunk in unless it is dropped. drop also lifts objects that are already sunk in or overlap.\n\nBefore saving a big build, run check_collisions for placed-object clashes / disconnected groups, then\ncheck_foundations for unsupported footprint portions and check_environment for landscape / base-foliage\nconflicts. A clean check_collisions is not full support or environment validation. All audits are read-only.\nUse get_object_bounds for world AABB / optional mesh OBB and get_world_bounds for placed or terrain extents;\nplayable bounds are unknown unless explicitly tagged, never inferred from landscape size.\n\ncapture_view defaults to fresh engine render-target capture: no window activation, desktop switch, UI or editor\ncamera movement. Never silently use foreground fallback. Only explicit backend='window', foreground=True may focus.\nmove_camera is native, without external memory writes/helper; holds have a 120-second abandonment watchdog.\nBefore construction use inspect_site for bare-ground grid, recognised flora and placed-object inventory. GPU-only\nlandscape grass sources are reported unavailable. clearing_zones previews by default, persists portable intent and\nmasks/restores supported base flora while DLL is resident; stock game alone ignores sidecars. Partial source coverage\nrequires explicit allow_partial. Preserve both UncrashedMCP sidecars when copying maps.\nUse list_groups/edit_group for explicit, preview-first transform/clone/delete/regroup and undo_edit/edit_history for\njournaled inverses. Clone/delete undo does not preserve arbitrary Blueprint/material runtime state. No edit auto-saves.\nFor built-up structures define_assembly assigns foundation/structure/cantilever/decoration roles to groups;\ncheck_assembly measures anchors and reciprocal contact paths, not load capacity. Intentional overhangs need a path,\nnot full ground-footprint coverage. Continue environment checks; do not call connectivity engineering certification.\n\nReplies are short by default; ask for more lines only when needed. Pivot vs. bounds: spawn takes the pivot;\nget_assets gives origin_cm / extent_cm so the bottom of a mesh can be put on the ground.\n\nNon-colliding scenery: set_collision (preview first) switches placed objects selected by actors, group, row or box\nto flythrough (drone/vehicle channels ignored, no rigid-body contact; traces and audits still see the object), off\n(no collision at all), nophysics, or back to on (exact restore); physics_off/physics_on are live-only simulation\ntoggles. Gates only with force. persist=True writes UncrashedMCP.collision and the resident DLL re-applies it after\nreloads while the editor is open, but the stock game without the DLL ignores it: for maps other people fly, prefer\nnon-colliding catalogue rows (search_assets collision='noncolliding', noncolliding_alternatives). collision_state\nreports per-object and per-component collision facts. undo_collision reverts using the transaction id. Which\nchannel the drone collides on is unverified: run agent 'collision channels' while flying and pass channels=[...] if\nit is not Pawn/PhysicsBody/Vehicle. Object rules follow catalogue row plus pivot (2 cm), so moving an object\ndetaches it from its rule; group rules survive moves. Keep UncrashedMCP.collision with the map.\n\nFor big maps run check_performance (offline with name=<saved map>, or live on the open editor; measure=True samples\nframe time, optionally at camera poses). Its budgets are heuristic UE4 defaults, so override them. Live grading\ncounts placed objects only; *_base figures are informational. To cut object count, consolidate_scenery merges edge-\nto-edge plain-box triplanar tiles (ground, Concrete Wall01/Floor01/Column...) into scaled copies. Preview first,\nthen apply with preview=False on a saved map (the largest merge goes first as a canary, and each replacement is\nverified and auto-undone on mismatch). Undo with undo_edit per returned transaction, newest first. Non-triplanar\nrows are never merged; thin them by hand.\n\nFor flyability use check_route_clearance. It sweeps the craft volume along a smooth line through the race gates\n(source='live' or 'map:<name>') or through waypoints (source='points'). Profiles: 5inch, tiny_whoop, cinewhoop,\n7inch, fixed_wing, or car/truck for roads; dims_m and margin_m customise them. It reports collisions, gate openings\ntoo small (probed from each gate's centre), tight spots, low ceilings or ground, and road corridor width, each with\na move_camera pose. Overlap-only triggers and flythrough objects are not obstacles. The collision channel defaults\nto Pawn, which is unverified for the drone; pass channel= (e.g. PhysicsBody, game3, '16') to change it. It is a\ngeometric check of a spline, not a flight test.\n\nAgent commands (one per line; centimetres and degrees; <actor> is a hex address from a reply):\n  spawn <row> x y z [pitch yaw roll] [sx sy sz] [group=tag]   place a catalogue row; x y z is the pivot\n  gate <row> x y z [pitch yaw roll]      race gate; STARTGATE first. DefaultOneW normal is local +Y: yaw=travel heading-90, roll=90 for a downward gate\n  laps <n>                               lap count\n  gates                                  list race gates in order\n  actors x y z radius [limit]            placed objects near a point: address, row, loc, rot, scale\n  get <actor> | bounds <actor>           one object's transform | world AABB, transform, mesh OBB\n  worldbounds placed|terrain|playable    loaded scene extents; playable requires explicit PlayableBounds tag\n  transform <actor> x y z pitch yaw roll sx sy sz   '-' keeps a value; to pick by position, find it with actors first\n  replace <actor> <row>                  same transform, other catalogue row\n  destroy <actor>                        delete one object or gate\n  destroyat x y z [tol] [count]          delete the nearest objects whose pivot is within tol (default 50)\n  destroybox x0 y0 x1 y1 [z0|-] [z1|-] [row|-]   delete every object whose pivot is inside (optionally one row only)\n  clear                                  delete everything placed (asks nothing: be sure)\n  mapinfo                                open map folder, title, base, object and gate counts\n  save [folder|-] [title]                save with the game's own SaveMap ('-' = the open folder)\n  setmap <folder> | base <row>           retarget the save folder | reopen the editor on another base (clears the scene)\n  floating [gap] [limit] [x0 y0 x1 y1]   objects hovering more than gap above anything\n  collide <file> [x0 y0 x1 y1] [gap]     collision facts of every placed object into a file (check_collisions reads them)\n  trace x y z_from z_to                  what a vertical ray hits, once per collision object type\n  terrain x y z_from z_to                landscape height only, ignoring foliage and placed objects\n  drop <actor|last> [step] [max] [embed] [dry]   rest it exactly on what is under it (lifts it if sunk in); last = the last spawn\n  cells <cell_m> <rows|!rows|*> [zmax_m] occupancy grid (metres here), comma-separated row filter\n  console <cmd> | cvar <name> | raise [off]   console command | read a console variable | game window on top\n  collision query|on|off|flythrough|nophysics <sel> [preview]   sel: actor=<hex> group=<tag> row=<row> box=... (set_collision wraps it)\n  collision status | channels            override counters | the drone's object channels (run while flying)\n  perf <file> [x0 y0 x1 y1] | rowflags <file> | frametime   performance scan | row data flags | frame timing\n  gatebox <file> [channel] | sweep <request> <output>       gates + collision components | swept craft volume\n  debug: ping scan resolve names objects funcs func props rows fname read write call\nExample: spawn NewRow_1 1500 -2000 0 0 90 0 1 1 1   -> a container at x=15 m, y=-20 m, turned 90 degrees.",
+ "tools": [
+  {
+   "description": "Where maps are written, whether Uncrashed is running, and how many assets are known.",
+   "input_schema": {
+    "properties": {},
+    "title": "statusArguments",
+    "type": "object"
+   },
+   "name": "status",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "statusOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Race-gate row names for the gate command. DefaultOneW is a normal gate; STARTGATE is a start arch.",
+   "input_schema": {
+    "properties": {},
+    "title": "list_gatesArguments",
+    "type": "object"
+   },
+   "name": "list_gates",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "list_gatesOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Find editor assets by name, material, tag or id.\n\n    Categories include Wall, Big structure, Foliage, Big_assets, Small_assets, Basic shape.\n    Tags include building, house, tree, vehicle, ground, fence. Decals are omitted unless category is Decals.\n    hidden=true means the picker hides the row; the JSON can still spawn it. size_m is the unscaled mesh.\n    collision='noncolliding' keeps rows whose game table 'Collision?' flag is false (stock-reliable, no DLL\n    needed): mostly neon signs; pass category='Decals' as well for decals. 'colliding' the opposite; empty = all.\n    ",
+   "input_schema": {
+    "properties": {
+     "category": {
+      "default": "",
+      "title": "Category",
+      "type": "string"
+     },
+     "collision": {
+      "default": "",
+      "title": "Collision",
+      "type": "string"
+     },
+     "include_hidden": {
+      "default": true,
+      "title": "Include Hidden",
+      "type": "boolean"
+     },
+     "limit": {
+      "default": 20,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "query": {
+      "default": "",
+      "title": "Query",
+      "type": "string"
+     },
+     "tag": {
+      "default": "",
+      "title": "Tag",
+      "type": "string"
+     }
+    },
+    "title": "search_assetsArguments",
+    "type": "object"
+   },
+   "name": "search_assets",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "search_assetsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Full records for asset ids, including bounds and the placement rule.",
+   "input_schema": {
+    "properties": {
+     "ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "ids"
+    ],
+    "title": "get_assetsArguments",
+    "type": "object"
+   },
+   "name": "get_assets",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "get_assetsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Local maps the track editor can load, newest first.",
+   "input_schema": {
+    "properties": {},
+    "title": "list_mapsArguments",
+    "type": "object"
+   },
+   "name": "list_maps",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "list_mapsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Instance counts, bounds and weather for one local map. Does not dump every transform.",
+   "input_schema": {
+    "properties": {
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "title": "inspect_mapArguments",
+    "type": "object"
+   },
+   "name": "inspect_map",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "inspect_mapOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Read the live editor camera. Metres and degrees. Requires Uncrashed to be open in the track editor.",
+   "input_schema": {
+    "properties": {},
+    "title": "camera_poseArguments",
+    "type": "object"
+   },
+   "name": "camera_pose",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "camera_poseOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Move the live editor camera without clicking. Metres, degrees. Negative pitch looks down.\n\n    Native game-thread transforms; no external memory writer or helper process.\n    hold disables editor camera movement until release_camera or 120-second watchdog\n    (previous enable state restored). No window activation, keys or mesh placement.\n    ",
+   "input_schema": {
+    "properties": {
+     "hold": {
+      "default": true,
+      "title": "Hold",
+      "type": "boolean"
+     },
+     "pitch": {
+      "default": -20,
+      "title": "Pitch",
+      "type": "number"
+     },
+     "x": {
+      "title": "X",
+      "type": "number"
+     },
+     "y": {
+      "title": "Y",
+      "type": "number"
+     },
+     "yaw": {
+      "title": "Yaw",
+      "type": "number"
+     },
+     "z": {
+      "title": "Z",
+      "type": "number"
+     }
+    },
+    "required": [
+     "x",
+     "y",
+     "z",
+     "yaw"
+    ],
+    "title": "move_cameraArguments",
+    "type": "object"
+   },
+   "name": "move_camera",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "move_cameraOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Stop holding the editor look so mouse look works again. The last position stays.",
+   "input_schema": {
+    "properties": {},
+    "title": "release_cameraArguments",
+    "type": "object"
+   },
+   "name": "release_camera",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "release_cameraOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Fresh offscreen scene image. Default: no focus/desktop switch or editor-camera move.\n\n    Pass x,y,z and optional yaw/pitch for independent render pose, not editor movement.\n    Engine backend omits UI and never silently falls back. window backend captures\n    current editor view; occluded/minimized pixels may be stale. Only explicit\n    backend='window', foreground=True permits activation/desktop switching.\n    At most 4,194,304 pixels. Inspect image yourself, not with another vision model.\n    ",
+   "input_schema": {
+    "properties": {
+     "backend": {
+      "default": "engine",
+      "title": "Backend",
+      "type": "string"
+     },
+     "foreground": {
+      "default": false,
+      "title": "Foreground",
+      "type": "boolean"
+     },
+     "height": {
+      "default": 450,
+      "title": "Height",
+      "type": "integer"
+     },
+     "pitch": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Pitch"
+     },
+     "width": {
+      "default": 800,
+      "title": "Width",
+      "type": "integer"
+     },
+     "x": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X"
+     },
+     "y": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y"
+     },
+     "yaw": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Yaw"
+     },
+     "z": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Z"
+     }
+    },
+    "title": "capture_viewArguments",
+    "type": "object"
+   },
+   "name": "capture_view"
+  },
+  {
+   "description": "Show a saved map in the open editor without leaving it.\n\n    Switches the base level if needed, removes what is placed, then places every object\n    and gate of the map with the editor's own functions in one pass. Afterwards the\n    editor's Save button (and save_live) write back to this map. move_camera puts the\n    camera where the map's saved view is.\n    ",
+   "input_schema": {
+    "properties": {
+     "move_camera": {
+      "default": true,
+      "title": "Move Camera",
+      "type": "boolean"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "title": "load_liveArguments",
+    "type": "object"
+   },
+   "name": "load_live",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "load_liveOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Save the open editor level with the game's own SaveMap (no key presses).\n\n    Everything placed live or by hand is written; deleted objects are gone. name is the\n    map folder; empty overwrites the map that is open. display_name is the list title;\n    empty keeps the current one. Writes the JSON and .info like the Save button.\n    ",
+   "input_schema": {
+    "properties": {
+     "display_name": {
+      "default": "",
+      "title": "Display Name",
+      "type": "string"
+     },
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "title": "save_liveArguments",
+    "type": "object"
+   },
+   "name": "save_live",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "save_liveOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Run one agent command in the open editor and return its reply as text.\n\n    Centimetres and degrees. The full command list is in the server instructions; the common ones:\n    spawn, gate, laps, gates, actors, get, transform, replace, destroy, destroyat, destroybox,\n    mapinfo, save, floating. Example: \"spawn NewRow_1 1500 -2000 0 0 90 0 1 1 1\".\n    The reply is cut to max_lines (default 40, at most 400).\n    ",
+   "input_schema": {
+    "properties": {
+     "command": {
+      "title": "Command",
+      "type": "string"
+     },
+     "max_lines": {
+      "default": 40,
+      "title": "Max Lines",
+      "type": "integer"
+     },
+     "timeout": {
+      "default": 30,
+      "title": "Timeout",
+      "type": "number"
+     }
+    },
+    "required": [
+     "command"
+    ],
+    "title": "agent_execArguments",
+    "type": "object"
+   },
+   "name": "agent_exec",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "agent_execOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Run many agent commands in one game-thread pass (the fast way to build: thousands per call).\n\n    Same command language as agent_exec (centimetres). quiet (default) reports only the summary and\n    the failures; quiet=false also returns each command's reply, cut to max_lines.\n    ",
+   "input_schema": {
+    "properties": {
+     "commands": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Commands",
+      "type": "array"
+     },
+     "max_lines": {
+      "default": 40,
+      "title": "Max Lines",
+      "type": "integer"
+     },
+     "quiet": {
+      "default": true,
+      "title": "Quiet",
+      "type": "boolean"
+     },
+     "timeout": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Timeout"
+     }
+    },
+    "required": [
+     "commands"
+    ],
+    "title": "agent_batchArguments",
+    "type": "object"
+   },
+   "name": "agent_batch",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "agent_batchOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Placed-object clashes and disconnected support groups. Read-only; engine collision.\n\n    Reports objects buried in rock, vehicles clipping into walls or each other, containers and buildings\n    inside each other, props deep inside other objects, vehicles sunk into the road, and anything not\n    connected to the ground (balloons excepted). Touching parts, construction joints, plants and ground tiles\n    are ignored. x0 y0 x1 y1 (metres) limit the scan to a region; default uses live placed-object extents,\n    not a fixed +/-3 km box. This does NOT verify complete foundations or environment clearance:\n    run check_foundations and check_environment too. No fixed z=0 ground assumption.\n\n    Returns counts per kind and the worst `top` issues (include_minor adds things hovering less than a metre),\n    each with its position and a camera pose for move_camera. Also writes report.json and report.html, a\n    zoomable plan with every issue, to /tmp/uncrashed-collide/. A whole map of 27,000 objects takes about a\n    minute; the editor pauses during each of the passes.\n    ",
+   "input_schema": {
+    "properties": {
+     "include_minor": {
+      "default": false,
+      "title": "Include Minor",
+      "type": "boolean"
+     },
+     "top": {
+      "default": 15,
+      "title": "Top",
+      "type": "integer"
+     },
+     "x0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X0"
+     },
+     "x1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X1"
+     },
+     "y0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y0"
+     },
+     "y1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y1"
+     }
+    },
+    "title": "check_collisionsArguments",
+    "type": "object"
+   },
+   "name": "check_collisions",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "check_collisionsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Live world-space AABB, optional oriented mesh bounds and transform. Metres.\n\n    Actor is a live hex address from agent_exec actors. AABB encloses owned actor\n    components; child actors are not included. OBB needs a static-mesh root.\n    Bounds enclose empty space too; they are not exact occupied geometry.\n    ",
+   "input_schema": {
+    "properties": {
+     "actor": {
+      "title": "Actor",
+      "type": "string"
+     }
+    },
+    "required": [
+     "actor"
+    ],
+    "title": "get_object_boundsArguments",
+    "type": "object"
+   },
+   "name": "get_object_bounds",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "get_object_boundsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Bounds of loaded placed objects, landscape, or explicit playable bounds. Metres.\n\n    scope: placed | terrain | playable. Terrain extent is NOT a playable boundary.\n    playable returns unavailable unless an actor is explicitly tagged PlayableBounds.\n    Never guesses from arbitrary blocking volumes or assumes a fixed map size.\n    ",
+   "input_schema": {
+    "properties": {
+     "scope": {
+      "default": "placed",
+      "title": "Scope",
+      "type": "string"
+     }
+    },
+    "title": "get_world_boundsArguments",
+    "type": "object"
+   },
+   "name": "get_world_bounds",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "get_world_boundsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Find partially unsupported footprints / buried base planes. Read-only; metres.\n\n    Defaults to buildings, containers, vehicles and big props. Pass live actor hex\n    addresses to target objects, or all four XY region bounds. include_structural\n    also tests walls / beams / props, where intentional cantilevers create warnings.\n    Samples a bounds base plane (oriented for upright meshes), NOT a structural load model. Reports\n    support coverage, unsupported corners, maximum known gap and missing rays.\n    Ignores base foliage and catalogued placed plants as support. No z=0 assumption.\n    spacing grid capped at 32 intervals per axis; effective spacing is reported.\n    Full results saved under /tmp/uncrashed-audit/. Does not move anything.\n    ",
+   "input_schema": {
+    "properties": {
+     "actors": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Actors"
+     },
+     "include_structural": {
+      "default": false,
+      "title": "Include Structural",
+      "type": "boolean"
+     },
+     "max_drop": {
+      "default": 50,
+      "title": "Max Drop",
+      "type": "number"
+     },
+     "spacing": {
+      "default": 0.75,
+      "title": "Spacing",
+      "type": "number"
+     },
+     "tolerance": {
+      "default": 0.3,
+      "title": "Tolerance",
+      "type": "number"
+     },
+     "top": {
+      "default": 15,
+      "title": "Top",
+      "type": "integer"
+     },
+     "x0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X0"
+     },
+     "x1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X1"
+     },
+     "y0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y0"
+     },
+     "y1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y1"
+     }
+    },
+    "title": "check_foundationsArguments",
+    "type": "object"
+   },
+   "name": "check_foundations",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "check_foundationsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Landscape penetration, base/placed-foliage collision candidates and canopy warnings.\n\n    Read-only; metres. Pass live actor addresses or four XY region bounds. By\n    default skips plants, rocks, ground tiles and structural kit parts. Terrain\n    samples use subject collision undersides when available, bounds otherwise.\n    Foliage physics tests subject OBB vs base/placed plant collision; not exact mesh-vs-mesh.\n    Optional canopy checks use visual per-instance / placed-plant AABBs, so leaves\n    without collision are covered conservatively. Only loaded plants taller than 2 m.\n    Full JSON report under /tmp/uncrashed-audit/; caps and unknowns are reported.\n    ",
+   "input_schema": {
+    "properties": {
+     "actors": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Actors"
+     },
+     "include_canopies": {
+      "default": true,
+      "title": "Include Canopies",
+      "type": "boolean"
+     },
+     "include_structural": {
+      "default": false,
+      "title": "Include Structural",
+      "type": "boolean"
+     },
+     "spacing": {
+      "default": 0.75,
+      "title": "Spacing",
+      "type": "number"
+     },
+     "tolerance": {
+      "default": 0.1,
+      "title": "Tolerance",
+      "type": "number"
+     },
+     "top": {
+      "default": 15,
+      "title": "Top",
+      "type": "integer"
+     },
+     "x0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X0"
+     },
+     "x1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X1"
+     },
+     "y0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y0"
+     },
+     "y1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y1"
+     }
+    },
+    "title": "check_environmentArguments",
+    "type": "object"
+   },
+   "name": "check_environment",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "check_environmentOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Sample bare landscape at up to 256 [x, y] positions (metres).\n\n    Ignores trees and placed structures, unlike trace/drop. Missing landscape returns z=null.\n    Use a footprint grid to choose foundation elevations; does not move any objects.\n    Requires a landscape base, not BaseBoard. Samples retain input order.\n    ",
+   "input_schema": {
+    "properties": {
+     "points": {
+      "items": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "title": "Points",
+      "type": "array"
+     },
+     "z_from": {
+      "default": 1000,
+      "title": "Z From",
+      "type": "number"
+     },
+     "z_to": {
+      "default": -2000,
+      "title": "Z To",
+      "type": "number"
+     }
+    },
+    "required": [
+     "points"
+    ],
+    "title": "sample_terrainArguments",
+    "type": "object"
+   },
+   "name": "sample_terrain",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "sample_terrainOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Tail of the in-game agent's log (load, unload, timing, caught faults).",
+   "input_schema": {
+    "properties": {
+     "lines": {
+      "default": 80,
+      "title": "Lines",
+      "type": "integer"
+     }
+    },
+    "title": "agent_logArguments",
+    "type": "object"
+   },
+   "name": "agent_log",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "agent_logOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Restore managed masks/holds and unload DLL; next call injects rebuilt DLL.\n\n    Restoration conflicts refuse unload to retain original foliage snapshots.\n    ",
+   "input_schema": {
+    "properties": {},
+    "title": "agent_unloadArguments",
+    "type": "object"
+   },
+   "name": "agent_unload",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "agent_unloadOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Read-only pre-placement terrain/foliage/placed-object inventory in XYZ box, metres.\n\n    Bare-ground grid includes center axes, capped at 225 points; effective spacing\n    reported. Foliage visual AABBs include crowns, even without leaf collision.\n    Set min_foliage_height=0 for groundcover too. Loaded geometry only, not complete\n    base-rock obstacle inventory. Full JSON on disk; top limits returned objects.\n    ",
+   "input_schema": {
+    "properties": {
+     "bounds_max": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Bounds Max",
+      "type": "array"
+     },
+     "bounds_min": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Bounds Min",
+      "type": "array"
+     },
+     "min_foliage_height": {
+      "default": 2,
+      "title": "Min Foliage Height",
+      "type": "number"
+     },
+     "spacing": {
+      "default": 5,
+      "title": "Spacing",
+      "type": "number"
+     },
+     "top": {
+      "default": 30,
+      "title": "Top",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "bounds_min",
+     "bounds_max"
+    ],
+    "title": "inspect_siteArguments",
+    "type": "object"
+   },
+   "name": "inspect_site",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "inspect_siteOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Persistent, reversible base-foliage exclusions: list | upsert | remove.\n\n    Metres; center/size are XYZ triplets, yaw rotates clearing prism. Preview by\n    default; preview=False writes portable map sidecars and applies live. Whole\n    instances hidden by visual bounds, including collision; no RemoveInstance,\n    no terrain/placed-object changes. Overlapping zones form union. Remove restores\n    originals not covered by other zones. Saved map required. Resident DLL reapplies\n    on map/base reload; sidecars must accompany map. Stock game alone ignores them.\n    GPU-only landscape grass may lack CPU instance transforms. Unavailable sources\n    reported; allow_partial=True explicitly permits supported-source-only clearing.\n    ",
+   "input_schema": {
+    "properties": {
+     "action": {
+      "default": "list",
+      "title": "Action",
+      "type": "string"
+     },
+     "allow_partial": {
+      "default": false,
+      "title": "Allow Partial",
+      "type": "boolean"
+     },
+     "center": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Center"
+     },
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     },
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "size": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Size"
+     },
+     "yaw": {
+      "default": 0,
+      "title": "Yaw",
+      "type": "number"
+     }
+    },
+    "title": "clearing_zonesArguments",
+    "type": "object"
+   },
+   "name": "clearing_zones",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "clearing_zonesOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Live saved editor group tags/counts, optionally name prefix. Pivot bounds, not mesh bounds.",
+   "input_schema": {
+    "properties": {
+     "limit": {
+      "default": 50,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "prefix": {
+      "default": "",
+      "title": "Prefix",
+      "type": "string"
+     }
+    },
+    "title": "list_groupsArguments",
+    "type": "object"
+   },
+   "name": "list_groups",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "list_groupsOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Preview/apply reversible transform | clone | delete | assign group edit.\n\n    Catalogue assets only; gates/base actors excluded. Explicit group or actor\n    handles required; never defaults to whole map. prefix\n    includes dot/underscore-separated subgroups (clone preserves suffixes). delta/pivot XYZ metres; rotation delta is\n    [pitch,yaw,roll] degrees, quaternion-composed. Uniform scale only (avoids shear).\n    Default pivot is center of selected pivots. clone needs fresh target_group;\n    assign regroups selected objects into target_group. Preview by default.\n    preview=False journals before-state on disk, validates native preconditions,\n    then edits. Up to 5000 objects. Undo via returned transaction id. Transforms\n    preserve actors; clone/delete undo regenerates catalogue assets, not arbitrary\n    Blueprint/material/animation state. Native faults may need journal recovery.\n    ",
+   "input_schema": {
+    "properties": {
+     "action": {
+      "default": "transform",
+      "title": "Action",
+      "type": "string"
+     },
+     "actors": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Actors"
+     },
+     "delta": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Delta"
+     },
+     "group": {
+      "default": "",
+      "title": "Group",
+      "type": "string"
+     },
+     "pivot": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Pivot"
+     },
+     "prefix": {
+      "default": false,
+      "title": "Prefix",
+      "type": "boolean"
+     },
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "rotation": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Rotation"
+     },
+     "scale": {
+      "default": 1,
+      "title": "Scale",
+      "type": "number"
+     },
+     "target_group": {
+      "default": "",
+      "title": "Target Group",
+      "type": "string"
+     }
+    },
+    "title": "edit_groupArguments",
+    "type": "object"
+   },
+   "name": "edit_group",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "edit_groupOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Preview/apply inverse of journaled edit. Explicit transaction id; saved map scoped.\n\n    Refuses if affected groups changed since edit. Matches row/group/transform\n    across handle changes on reload. Successful undo creates inverse transaction\n    (undo that to redo). preview=False applies. Does not restore arbitrary runtime\n    Blueprint/material state for deleted/respawned catalogue assets.\n    ",
+   "input_schema": {
+    "properties": {
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "transaction": {
+      "title": "Transaction",
+      "type": "string"
+     }
+    },
+    "required": [
+     "transaction"
+    ],
+    "title": "undo_editArguments",
+    "type": "object"
+   },
+   "name": "undo_edit",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "undo_editOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Recent current-map MCP transaction ids/statuses, including recovery-required edits.",
+   "input_schema": {
+    "properties": {
+     "limit": {
+      "default": 20,
+      "title": "Limit",
+      "type": "integer"
+     }
+    },
+    "title": "edit_historyArguments",
+    "type": "object"
+   },
+   "name": "edit_history",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "edit_historyOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Inspect/save assembly intent: group -> foundation|structure|cantilever|decoration.\n\n    Omit roles to inspect named assembly, or omit name too to list definitions.\n\n    At least one explicit foundation group. Use edit_group assign to split footings\n    from beams when necessary. Preview by default; preview=False writes map sidecar,\n    not geometry. Group tags/roles survive save/reload without actor-handle IDs.\n    ",
+   "input_schema": {
+    "properties": {
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     },
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "roles": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Roles"
+     }
+    },
+    "title": "define_assemblyArguments",
+    "type": "object"
+   },
+   "name": "define_assembly",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "define_assemblyOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Read-only intent-aware support connectivity, NOT structural certification.\n\n    Explicit foundation roots need measured landscape/base contact, not z=0.\n    Reciprocal OBB-vs-collision hits build graph. Cantilevers need anchor path,\n    not full footprint coverage; plants/decorations cannot support frame. Reports\n    disconnected members, unknown anchors and conservative-contact limitations.\n    Metres; loaded geometry only. Still run check_environment for terrain/trees.\n    ",
+   "input_schema": {
+    "properties": {
+     "foundation_tolerance": {
+      "default": 0.3,
+      "title": "Foundation Tolerance",
+      "type": "number"
+     },
+     "min_anchor_coverage": {
+      "default": 0.5,
+      "title": "Min Anchor Coverage",
+      "type": "number"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "tolerance": {
+      "default": 0.05,
+      "title": "Tolerance",
+      "type": "number"
+     },
+     "top": {
+      "default": 20,
+      "title": "Top",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "title": "check_assemblyArguments",
+    "type": "object"
+   },
+   "name": "check_assembly",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "check_assemblyOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Make placed scenery non-colliding (live, resident DLL): on | nophysics | flythrough | off,\n    plus live-only physics_off / physics_on (toggle simulation only, leave flythrough/off alone; persist=False).\n\n    Exactly one selector: actors (hex handles, max 8192), group (editor group tag), row (catalogue id, every\n    instance) or box_min/box_max (XYZ metres, object pivot inside); group/row/box have no size cap.\n    Never base landscape/foliage. Race gates are checkpoints: skipped unless force=True. flythrough\n    ignores channels (default pawn, physicsbody, vehicle; names, engineN, gameN or 0..31) and drops\n    rigid-body collision (keep_body=True keeps it); query collision stays, so traces/audits/editor\n    picking still see it. off disables all collision (traces miss it). nophysics only stops simulation.\n    on restores the exact recorded originals. Preview by default. persist=True (saved map required)\n    writes portable rules to UncrashedMCP.json + UncrashedMCP.collision and the resident DLL re-applies\n    them after every map reload while the editor is open; the STOCK GAME WITHOUT THE DLL IGNORES THEM\n    (use noncolliding_alternatives / search_assets(collision='noncolliding') for stock-reliable scenery).\n    Returns a transaction id for undo_collision. Drone channel unverified: run agent 'collision channels'\n    while flying.\n    ",
+   "input_schema": {
+    "properties": {
+     "actors": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Actors"
+     },
+     "box_max": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Box Max"
+     },
+     "box_min": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Box Min"
+     },
+     "channels": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Channels"
+     },
+     "force": {
+      "default": false,
+      "title": "Force",
+      "type": "boolean"
+     },
+     "group": {
+      "default": "",
+      "title": "Group",
+      "type": "string"
+     },
+     "keep_body": {
+      "default": false,
+      "title": "Keep Body",
+      "type": "boolean"
+     },
+     "mode": {
+      "default": "flythrough",
+      "title": "Mode",
+      "type": "string"
+     },
+     "persist": {
+      "default": true,
+      "title": "Persist",
+      "type": "boolean"
+     },
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "row": {
+      "default": "",
+      "title": "Row",
+      "type": "string"
+     },
+     "top": {
+      "default": 30,
+      "title": "Top",
+      "type": "integer"
+     }
+    },
+    "title": "set_collisionArguments",
+    "type": "object"
+   },
+   "name": "set_collision",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "set_collisionOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Read-only collision facts. No selector: DLL status (records, rules, rules matching nothing because\n    objects moved, gone/replaced counters), persisted rules. With a selector: per object mode/owner,\n    keep_body, actor collision, simulating, and per component CollisionEnabled, object channel, profile and\n    responses (pawn, physicsbody, vehicle, visibility, camera, ...); 'blocks' lists queried channels it still blocks.\n    ",
+   "input_schema": {
+    "properties": {
+     "actors": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Actors"
+     },
+     "box_max": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Box Max"
+     },
+     "box_min": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Box Min"
+     },
+     "channels": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Channels"
+     },
+     "components": {
+      "default": true,
+      "title": "Components",
+      "type": "boolean"
+     },
+     "group": {
+      "default": "",
+      "title": "Group",
+      "type": "string"
+     },
+     "row": {
+      "default": "",
+      "title": "Row",
+      "type": "string"
+     },
+     "top": {
+      "default": 30,
+      "title": "Top",
+      "type": "integer"
+     }
+    },
+    "title": "collision_stateArguments",
+    "type": "object"
+   },
+   "name": "collision_state",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "collision_stateOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Preview/apply the inverse of a set_collision transaction (edit_history lists them).\n\n    Restores the previous persisted rules (refuses if rules changed since) and replays the previous\n    per-object modes (including keep_body) for the journaled objects that are still loaded; reports\n    how many are missing. A live-only transaction whose objects are all gone is refused (nothing to undo).\n    ",
+   "input_schema": {
+    "properties": {
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "transaction": {
+      "title": "Transaction",
+      "type": "string"
+     }
+    },
+    "required": [
+     "transaction"
+    ],
+    "title": "undo_collisionArguments",
+    "type": "object"
+   },
+   "name": "undo_collision",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "undo_collisionOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Stock-reliable non-colliding catalogue rows resembling `row` (Collision? flag false in the game's\n    table: works without the DLL and for every player). Often none exist: the catalogue's non-colliding\n    rows are decals and neon signs; then use set_collision.\n    ",
+   "input_schema": {
+    "properties": {
+     "limit": {
+      "default": 5,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "row": {
+      "title": "Row",
+      "type": "string"
+     }
+    },
+    "required": [
+     "row"
+    ],
+    "title": "noncolliding_alternativesArguments",
+    "type": "object"
+   },
+   "name": "noncolliding_alternatives",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "noncolliding_alternativesOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Performance budget check for big maps. Read-only; metres.\n\n    name = a saved map folder (or a .json path) scans the file offline: counts per row / category / kind, Blueprint\n    objects, LOD0 triangle estimate, densest grid cells (cell m) with a move_camera pose each, top rows by count and\n    by triangles, and how many objects consolidate_scenery could merge. Without name it scans the open editor live:\n    every loaded actor, its mesh / instanced components, visible lights (movable, shadow casting), shadow casters,\n    never-culled primitives, physics, collision, whether any placed object owns an instanced component, and the\n    renderer's dynamic-instancing cvar. Live budgets grade placed objects only; *_base figures (landscape, foliage,\n    base map) are informational. x0 y0 x1 y1 limit the scan to a region.\n    budgets overrides heuristic defaults (NOT measured Uncrashed limits; listed in the reply): a number sets warn and\n    high = 2.5 x warn, e.g. {\"placed_objects\": 6000}; a dict sets either or both, e.g. {\"dynamic_lights\": {\"warn\": 8,\n    \"high\": 20}} (warn alone raises high to at least 2.5 x warn). cell_objects / cell_triangles are per 50 m cell and\n    scale with cell area unless overridden.\n    measure=True (live only) also samples frame time for `duration` seconds, at each of up to 8 poses\n    [{x,y,z,yaw,pitch}] (camera released afterwards), and reports avg / p95 ms with VSync / MaxFPS / background notes.\n    Returns warnings by severity with concrete advice; full JSON under /tmp/uncrashed-perf/.\n    ",
+   "input_schema": {
+    "properties": {
+     "budgets": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Budgets"
+     },
+     "cell": {
+      "default": 50,
+      "title": "Cell",
+      "type": "number"
+     },
+     "duration": {
+      "default": 1.5,
+      "title": "Duration",
+      "type": "number"
+     },
+     "measure": {
+      "default": false,
+      "title": "Measure",
+      "type": "boolean"
+     },
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     },
+     "poses": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Poses"
+     },
+     "top": {
+      "default": 10,
+      "title": "Top",
+      "type": "integer"
+     },
+     "x0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X0"
+     },
+     "x1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X1"
+     },
+     "y0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y0"
+     },
+     "y1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y1"
+     }
+    },
+    "title": "check_performanceArguments",
+    "type": "object"
+   },
+   "name": "check_performance",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "check_performanceOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Merge edge-to-edge runs of the same plain-box triplanar row into fewer scaled copies. Preview by default.\n\n    The save format has no instancing, so fewer bigger objects are the only persistent saving. Only rows that the\n    catalogue marks triplanar (texture is world-projected, so scaling keeps its density) AND whose mesh hull is a\n    plain box (ground tiles, Concrete Wall01 / Floor01 / Column, roof, grid net) are merged; slopes, corners, holed or\n    windowed pieces and every non-triplanar row are never merged. Tiles must share row, group, rotation, scale and\n    plane, and sit on one lattice within tolerance (m); merged copies are at most max_size m per side.\n    name = saved map (preview only). Without name it plans on the open editor; preview=False deletes the originals\n    and spawns the replacements through the journaled group edit: the largest-scale merge goes alone first as a\n    canary, then one transaction per <=4000 commands. Every replacement's pivot/scale is checked against the request;\n    a mismatch undoes that transaction and stops with an error. Returns transaction ids: undo with\n    undo_edit(transaction, preview=False), newest first. Saved map required for apply (journal sidecar). Also lists\n    high-count rows that cannot be merged, for manual thinning. No auto-save.\n    ",
+   "input_schema": {
+    "properties": {
+     "limit": {
+      "default": 20,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "max_size": {
+      "default": 64,
+      "title": "Max Size",
+      "type": "number"
+     },
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     },
+     "preview": {
+      "default": true,
+      "title": "Preview",
+      "type": "boolean"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Rows"
+     },
+     "tolerance": {
+      "default": 0.02,
+      "title": "Tolerance",
+      "type": "number"
+     },
+     "x0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X0"
+     },
+     "x1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "X1"
+     },
+     "y0": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y0"
+     },
+     "y1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Y1"
+     }
+    },
+    "title": "consolidate_sceneryArguments",
+    "type": "object"
+   },
+   "name": "consolidate_scenery",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "consolidate_sceneryOutput",
+    "type": "object"
+   }
+  },
+  {
+   "description": "Route clearance for a craft along the race line or waypoints. Read-only; metres.\n\n    source: 'live' (race gates in the open editor), 'map:<name>' (saved Race: start + checkpoints, laps),\n    or 'points' with points=[[x,y,z],...] (ground mode accepts [x,y]: top-most non-foliage, non-gate surface).\n    A centripetal Catmull-Rom spline through gate openings (trigger-volume centres; lead-in/out along\n    each gate normal unless align_gates=False), sampled every spacing_m, closed when laps>1 (or closed=True).\n    profile: tiny_whoop, cinewhoop, 5inch, 7inch, fixed_wing (air) or car, truck (ground; path draped on the\n    surface at ride height); dims_m=[width,length,height] and margin_m override. Dimensions are echoed.\n    The craft box is swept between samples against real collision; probes measure free space in\n    `directions` horizontal directions + up/down up to probe_m. Gate openings are probed from each gate's exact centre.\n    channel: the collision channel the craft is assumed to collide as: Pawn, PhysicsBody, Vehicle, ...,\n    game1..game18, engine1..engine6 or an index '0'..'31'. Components that only overlap / ignore it (gate checkpoint\n    triggers, flythrough objects) are not obstacles. The physical-craft model also skips QueryOnly components,\n    even with channel='Visibility': it cannot validate visual openings in a QueryOnly/flythrough scene. Collision-\n    disabled objects are invisible. Reports collisions, gate frame hits, gate openings smaller than craft + 2*margin,\n    tight spots, low ceiling / ground, and for ground\n    mode corridor width / narrow corridor / ground contact, each with route distance, obstacle row and a move_camera\n    pose. Full JSON + HTML plan in /tmp/uncrashed-clearance/.\n    ",
+   "input_schema": {
+    "properties": {
+     "align_gates": {
+      "default": true,
+      "title": "Align Gates",
+      "type": "boolean"
+     },
+     "channel": {
+      "default": "Pawn",
+      "title": "Channel",
+      "type": "string"
+     },
+     "closed": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Closed"
+     },
+     "dims_m": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Dims M"
+     },
+     "directions": {
+      "default": 16,
+      "title": "Directions",
+      "type": "integer"
+     },
+     "ignore_start_m": {
+      "default": 0.0,
+      "title": "Ignore Start M",
+      "type": "number"
+     },
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Kind"
+     },
+     "laps": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Laps"
+     },
+     "margin_m": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Margin M"
+     },
+     "max_issues": {
+      "default": 20,
+      "title": "Max Issues",
+      "type": "integer"
+     },
+     "points": {
+      "anyOf": [
+       {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "type": "array"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Points"
+     },
+     "probe_m": {
+      "default": 10.0,
+      "title": "Probe M",
+      "type": "number"
+     },
+     "profile": {
+      "default": "5inch",
+      "title": "Profile",
+      "type": "string"
+     },
+     "source": {
+      "default": "live",
+      "title": "Source",
+      "type": "string"
+     },
+     "spacing_m": {
+      "default": 1.0,
+      "title": "Spacing M",
+      "type": "number"
+     }
+    },
+    "title": "check_route_clearanceArguments",
+    "type": "object"
+   },
+   "name": "check_route_clearance",
+   "output_schema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "check_route_clearanceOutput",
+    "type": "object"
+   }
+  }
+ ]
+}
