@@ -1,6 +1,6 @@
 # Command line
 
-`./uc` drives the same 37 operations as the MCP server from a shell. Agents load nothing up front: `./uc help` lists the commands, `./uc help <command>` gives parameters and examples, `./uc help guide` carries the workflow and cautions. Replies are compact text instead of JSON, bulk input comes from files, images land on disk.
+`./uc` drives the same 41 operations as the MCP server from a shell. Agents load nothing up front: `./uc help` lists the commands, `./uc help <command>` gives parameters and examples, `./uc help guide` carries the workflow and cautions. Replies are compact text instead of JSON, bulk input comes from files, images land on disk.
 
 ## Install
 
@@ -72,7 +72,7 @@ A path that matches nothing prints a warning to stderr and the full result. Prev
 | 0 | ok |
 | 1 | the operation raised. `... nothing was sent` means nothing reached the game: safe to retry. For live changes after a send the scene may be partly changed |
 | 2 | usage error, nothing ran |
-| 3 | ran, but reported failures (some batch lines failed, `save_live` did not write, ...) |
+| 3 | ran, but reported failures (some batch lines failed, `save_live` did not write, a `capture_sheet` pose failed, ...) |
 
 Every non-zero exit also prints one `error: ...` line on stderr, even if stdout was printed, so a pipe cannot hide it. Use `set -o pipefail` in pipelines. An error that ends `may have run`, a timeout, or `batch state UNKNOWN` means a command was sent: never re-send it, look first (`./uc last`, `./uc exec mapinfo`). `nothing was sent` is the only safe-to-retry text.
 
@@ -90,7 +90,7 @@ One command per line, centimetres; empty lines and `#` lines are skipped. Each c
 
 ## Long commands, timeouts, retries
 
-`check_collisions` (about a minute per 27,000 objects), `load_live`, large batches, `consolidate_scenery --apply` and `check_route_clearance` can outlast a shell tool's default timeout: raise it or run in the background. `--timeout` (seconds) sets how long the CLI waits for the agent's reply (`exec` default 30). `batch` waits max(60 s, 0.02 s per command) unless `--timeout` is given. A timeout means the command was sent and may still run. Never re-send it: look first. A batch that fails after sending ends `batch state UNKNOWN` (same rule). Follow-up live commands wait for the running job (note `agent is finishing an earlier job`) and give up with `agent busy: an earlier job is still running; nothing was sent` plus a hint to read `./uc log`.
+`check_collisions` (about a minute per 27,000 objects), `load_live`, large batches, `consolidate_scenery --apply`, `check_route_clearance` and `check_opening` can outlast a shell tool's default timeout: raise it or run in the background. `--timeout` (seconds) sets how long the CLI waits for the agent's reply (`exec` default 30). `batch` waits max(60 s, 0.02 s per command) unless `--timeout` is given. A timeout means the command was sent and may still run. Never re-send it: look first. A batch that fails after sending ends `batch state UNKNOWN` (same rule). Follow-up live commands wait for the running job (note `agent is finishing an earlier job`) and give up with `agent busy: an earlier job is still running; nothing was sent` plus a hint to read `./uc log`.
 
 ```bash
 ./uc last              # the last finished agent reply; while a job runs it is the one before it (stderr note)
@@ -165,6 +165,10 @@ Same operations, parameters and defaults. This table is generated from the regis
 | `check_performance` | `./uc check_performance [NAME:str] [--region x0,y0,x1,y1] [--budgets k=v,..\|json] [--measure] [--poses json] [--duration num=1.5] [--cell num=50] [--top int=10]` | saved map name, else game |
 | `consolidate_scenery` | `./uc consolidate_scenery [NAME:str] [--region x0,y0,x1,y1] [--rows a,b,..] [--apply] [--tolerance num=0.02] [--max_size num=64] [--limit int=20]` | saved map name, else game; changes with --apply |
 | `check_route_clearance` | `./uc check_route_clearance [SOURCE:str=live] [--points x,y[,z]\|json] [--profile str=5inch] [--margin_m num] [--spacing_m num=1] [--dims_m n,n,..] [--kind str] [--channel str=Pawn] [--probe_m num=10] [--directions int=16] [--closed\|--no-closed] [--laps int] [--no-align_gates] [--ignore_start_m num=0] [--max_issues int=20]` | game |
+| `capture_sheet` | `./uc capture_sheet POSES:str [--width int=480] [--height int=270] [--columns int=0] [--out str]` | game |
+| `scene_snapshot` | `./uc scene_snapshot [--group str] [--box n,n,..] [--name str]` | game |
+| `scene_diff` | `./uc scene_diff SNAPSHOT:str [--group str] [--box n,n,..] [--position_m num=0.01] [--rotation_deg num=0.1] [--scale num=0.001] [--gate_position_m num=0.01] [--examples int=10]` | game |
+| `check_opening` | `./uc check_opening PATH:x,y[,z] ... [--profile str=5inch] [--margin_m num] [--channel str=Pawn] [--spacing_m num=0.25] [--dims_m n,n,..] [--near_m num=5] [--top int=10]` | game |
 
 `mcp` tool names such as `agent_exec` still work as CLI command names. The MCP server (`./uc mcp`, `uncrashed-mcp`, `python -m uncrashed_mcp`) is a thin adapter over the same registry.
 

@@ -15,7 +15,7 @@ Rules:
 2. Never add `--apply`, never run `load_live`, `save_live`, `unload`, or `exec` / `batch` lines containing
    `clear`, `destroy`, `destroyat`, `destroybox`, `replace`, `base` or `setmap` unless that exact command is
    in your instructions.
-3. Give slow commands (`check_collisions`, `load_live`, `batch`, `check_route_clearance`,
+3. Give slow commands (`check_collisions`, `load_live`, `batch`, `check_route_clearance`, `check_opening`, `capture_sheet`,
    `consolidate_scenery`) a shell timeout of at least 600000 ms.
 4. Stop at the first command that exits non-zero. Never re-send a command that failed, timed out or was
    interrupted. For exit 1 on a live command also run `./uc last` and `./uc exec mapinfo` and include their

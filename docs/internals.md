@@ -1,6 +1,6 @@
 # Internals
 
-A command line tool (with an optional MCP adapter) that edits the open **Uncrashed: FPV Drone Simulator** track editor live (Steam app 1682970, Unreal Engine 4.27). An agent injected into the game calls the editor's own functions, so everything placed behaves and saves like a hand-placed object. It exposes 37 operations with short replies by default.
+A command line tool (with an optional MCP adapter) that edits the open **Uncrashed: FPV Drone Simulator** track editor live (Steam app 1682970, Unreal Engine 4.27). An agent injected into the game calls the editor's own functions, so everything placed behaves and saves like a hand-placed object. It exposes 41 operations with short replies by default.
 
 ## Run it
 
@@ -45,7 +45,7 @@ Every row is a CLI command (`./uc <name>`; MCP tool of the same name); `./uc hel
 | `save_live` | save the open level with the game's own SaveMap |
 | `agent_batch` | many agent commands in one game-thread pass: the fast way to build (thousands per call) |
 | `agent_exec` | one agent command |
-| `camera_pose` / `move_camera` / `release_camera` / `capture_view` | native camera + offscreen scene images; no focus/desktop switch by default |
+| `camera_pose` / `move_camera` / `release_camera` / `capture_view` / `capture_sheet` | native camera + offscreen scene images; no focus/desktop switch by default |
 | `check_collisions` | placed-object clashes / support connectivity; writes a report page |
 | `check_foundations` | footprint support coverage, unsupported corners, base-plane gaps / penetration |
 | `check_environment` | landscape penetration, base / placed foliage collision candidates, visual canopy warnings |
@@ -56,6 +56,8 @@ Every row is a CLI command (`./uc <name>`; MCP tool of the same name); `./uc hel
 | `clearing_zones` | preview/apply/remove persistent, reversible base-foliage exclusions |
 | `list_groups` / `edit_group` | group inventory, transform/clone/delete/regroup; preview first |
 | `undo_edit` / `edit_history` | durable, map-scoped transaction journals and conflict-checked undo |
+| `scene_snapshot` / `scene_diff` | read-only stamped scene snapshot beside the map; before/after diff with gate and start verdicts |
+| `check_opening` | first obstruction along a short approach -> opening -> exit path (route-clearance sweep), each finding tagged live-collision / override-active / unverified |
 | `define_assembly` / `check_assembly` | saved group roles, measured foundation anchors and cantilever-aware connectivity |
 | `agent_log` / `agent_unload` | agent log and DLL hot-swap |
 
@@ -86,6 +88,24 @@ Rows marked hidden are missing from the in-game picker and still spawn. Asphalt 
 `capture_view` renders a fresh, UI-free image through the engine. Optional pose does **not** move the editor camera.
 It never activates a window or falls back to foreground capture. Native camera control no longer uses an external
 memory-writing helper. An explicit `--backend window --foreground` is the only capture mode allowed to focus/switch desktops.
+
+`capture_sheet` runs up to 60 explicit poses through the same engine capture, taking the agent lock per pose so other
+clients are not starved (per pose, about 1.5 s: start, three renders spaced for temporal AA/exposure, export, stop; one
+short `camera get` for the FOV) and tiles them with PIL into one labelled `sheet.png`, plus one PNG per pose and
+`index.json`. `--out` must be new or empty (no stale frames mix in) and is created at the first captured frame. A failed pose becomes a FAILED tile and an error entry;
+the CLI exits 3. Natively hidden from captures: world line batchers, the editor pawn, ruler/axis helpers and the water
+box. Gates, gate numbers, the start arch and any race guide stay visible: hiding them needs a native change
+(`HideActorComponents` for `BP_Gate_C` in `capture_hide_editor_helpers`, behind a flag). A reusable capture slot
+(`capture pose <token> ...`) would also save the per-pose actor/render-target creation.
+
+`scene_snapshot` stores one full `groups` export (row, group, native transform, actor id, session token) plus the
+`gatebox` gates as gzip JSON in `UncrashedMCP.snapshots/` beside the map, and returns a stamp with order-independent
+content and ordered gate fingerprints. `scene_diff` refuses another map folder/base or an edited snapshot, pairs objects
+by actor id in the same session and otherwise by row + nearest position within tolerance (in the same session never to
+an object that existed outside the snapshot scope, so a deleted in-scope object counts as removed), and writes the full diff to
+`UncrashedMCP.snapshots/diffs/`. Native work that would help: a filtered `groups` export (group/box, so a scoped snapshot
+does not freeze the editor for the whole map), the session token from `mapinfo`, and gate order from the saved race
+(`CheckPoints`) plus spawn points live. `edit_history` also reports `rollback_complete` parsed from the native result.
 
 New managed tools preview by default. Group changes journal before-state, support undo after handle changes, and refuse
 intervening edits. Zone/assembly intent is saved in portable map sidecars; save-as copies intent, not undo history.

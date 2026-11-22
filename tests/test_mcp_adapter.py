@@ -51,6 +51,27 @@ class ToolListTests(unittest.TestCase):
         self.assertNotEqual(batch['description'], by_name['agent_batch']['description'])
         self.assertIn('"#<index> [L<file line>] <error> << <command>"', batch['description'])
         by_name['agent_batch']['description'] = batch['description']
+        # declared: operations added after the port follow the baseline tools, described by their own docstrings
+        added = listed[len(expected):]
+        self.assertEqual([tool['name'] for tool in added], ['capture_sheet', 'scene_snapshot', 'scene_diff', 'check_opening'])
+        opening = added[3]
+        self.assertEqual(opening['input_schema']['required'], ['path'])
+        self.assertEqual({k: v.get('default') for k, v in opening['input_schema']['properties'].items()},
+                         {'path': None, 'profile': '5inch', 'margin_m': None, 'channel': 'Pawn', 'spacing_m': .25,
+                          'dims_m': None, 'near_m': 5.0, 'top': 10})
+        for tool in added[1:]:
+            self.assertEqual(tool['description'], getattr(api, tool['name']).__doc__)
+        self.assertNotIn('required', added[1]['input_schema'])
+        self.assertEqual(added[2]['input_schema']['required'], ['snapshot'])
+        self.assertEqual({k: v.get('default') for k, v in added[2]['input_schema']['properties'].items()},
+                         {'snapshot': None, 'group': None, 'box': None, 'position_m': .01, 'rotation_deg': .1,
+                          'scale': .001, 'gate_position_m': .01, 'examples': 10})
+        sheet = added[0]
+        self.assertEqual(sheet['description'], api.capture_sheet.__doc__)
+        self.assertEqual(sheet['input_schema']['required'], ['poses'])
+        self.assertEqual({k: v.get('default') for k, v in sheet['input_schema']['properties'].items()},
+                         {'poses': None, 'width': 480, 'height': 270, 'columns': 0, 'out': ''})
+        listed = listed[:len(expected)]
         self.assertEqual([tool['name'] for tool in listed], [tool['name'] for tool in expected])
         for got, want in zip(listed, expected):
             self.assertEqual(got, want, got['name'])

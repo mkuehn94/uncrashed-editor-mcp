@@ -1,0 +1,57 @@
+{
+ "sheet": "/tmp/uncrashed-shots/sheet-0a1b2c3d4e5f/sheet.png",
+ "directory": "/tmp/uncrashed-shots/sheet-0a1b2c3d4e5f",
+ "index_json": "/tmp/uncrashed-shots/sheet-0a1b2c3d4e5f/index.json",
+ "units": "metres",
+ "poses": 3,
+ "captured": 2,
+ "failed_count": 1,
+ "width": 480,
+ "height": 270,
+ "columns": 2,
+ "fov": 90.0,
+ "roll": 0.0,
+ "capture_seconds": 3.71,
+ "seconds": 3.79,
+ "shots": [
+  {
+   "label": "start",
+   "x": 0.0,
+   "y": -20.0,
+   "z": 6.0,
+   "yaw": 90.0,
+   "pitch": -10.0,
+   "image": "01-start.png",
+   "seconds": 1.42,
+   "error": null
+  },
+  {
+   "label": "gate1",
+   "x": 30.0,
+   "y": 0.0,
+   "z": 8.0,
+   "yaw": 0.0,
+   "pitch": -5.0,
+   "image": null,
+   "seconds": 0.88,
+   "error": "capture is uniform/blank; rendering may be suspended"
+  },
+  {
+   "label": "gate2",
+   "x": 60.0,
+   "y": 12.0,
+   "z": 9.5,
+   "yaw": -30.0,
+   "pitch": -5.0,
+   "image": "03-gate2.png",
+   "seconds": 1.37,
+   "error": null
+  }
+ ],
+ "editor_camera_moved": false,
+ "limitations": [
+  "Images only: a sheet does not establish visual quality, clearance, connectivity or a flyable line.",
+  "Editor line batchers, the editor pawn and ruler/axis helpers are hidden from captures natively; gates, gate numbers, the start arch and any race guide stay visible (hiding them needs a native change).",
+  "Each pose is a separate render-target job (start, 3 renders, export, stop) at the editor camera FOV, roll 0."
+ ]
+}

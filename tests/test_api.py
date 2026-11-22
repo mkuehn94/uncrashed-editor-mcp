@@ -23,6 +23,8 @@ EMPTY = inspect.Parameter.empty
 # The only places where an operation's public surface may differ from the pre-port MCP tools.
 ADDED_PARAMS = {'capture_view': {'out': ''}}
 CHANGED_DOCS = {'agent_batch'}
+# Operations added after the port, appended after the baseline tools in this order (their surface is pinned below).
+ADDED_OPS = ('capture_sheet', 'scene_snapshot', 'scene_diff', 'check_opening')
 
 _guards = []
 
@@ -49,8 +51,8 @@ def echo(*args, **kwargs):
 
 class RegistryTests(unittest.TestCase):
     def test_operations_are_the_baseline_tools_in_order(self):
-        self.assertEqual(list(api.OPERATIONS), [tool['name'] for tool in BASELINE['tools']])
-        self.assertEqual(len(api.OPERATIONS), 37)
+        self.assertEqual(list(api.OPERATIONS), [tool['name'] for tool in BASELINE['tools']] + list(ADDED_OPS))
+        self.assertEqual(len(api.OPERATIONS), 37 + len(ADDED_OPS))
         for name, op in api.OPERATIONS.items():
             self.assertEqual(op.name, name)
             self.assertIs(getattr(api, name), op.fn)
@@ -59,6 +61,8 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(api.INSTRUCTIONS, BASELINE['instructions'])
         self.assertTrue(api.INSTRUCTIONS.endswith(api.VERBS))
         for name, op in api.OPERATIONS.items():
+            if name in ADDED_OPS:
+                continue
             if name in CHANGED_DOCS:
                 self.assertTrue(op.fn.__doc__.startswith(TOOLS[name]['description'].rstrip()), name)
                 # the declared addition: the failure format, with the source line a file-based caller gets
@@ -69,6 +73,8 @@ class RegistryTests(unittest.TestCase):
 
     def test_parameters_and_defaults_match_the_baseline_schema(self):
         for name, op in api.OPERATIONS.items():
+            if name in ADDED_OPS:
+                continue
             schema = TOOLS[name]['input_schema']
             params = {p.name: p for p in op.params()}
             added = ADDED_PARAMS.get(name, {})
@@ -79,6 +85,41 @@ class RegistryTests(unittest.TestCase):
                     self.assertEqual(param.default, added[pname])
                 elif param.default is not EMPTY:
                     self.assertEqual(param.default, schema['properties'][pname].get('default'), f'{name}.{pname}')
+
+    def test_added_operations_surface(self):
+        op = api.OPERATIONS['capture_sheet']
+        self.assertEqual([(p.name, p.annotation, p.default) for p in op.params()],
+                         [('poses', str, EMPTY), ('width', int, 480), ('height', int, 270), ('columns', int, 0),
+                          ('out', str, '')])
+        self.assertEqual((op.live, op.effect, op.positional), ('yes', 'read', ('poses',)))
+        for needle in ('60', 'metres', 'label x y z yaw pitch', '@path', 'FAILED', 'index.json', 'gates', 'not proof'):
+            self.assertIn(needle, op.fn.__doc__)
+
+    def test_scene_snapshot_and_diff_surface(self):
+        snap, diff = api.OPERATIONS['scene_snapshot'], api.OPERATIONS['scene_diff']
+        self.assertEqual([(p.name, p.annotation, p.default) for p in snap.params()],
+                         [('group', str, ''), ('box', list[float] | None, None), ('name', str, '')])
+        self.assertEqual([(p.name, p.default) for p in diff.params()],
+                         [('snapshot', EMPTY), ('group', None), ('box', None), ('position_m', .01),
+                          ('rotation_deg', .1), ('scale', .001), ('gate_position_m', .01), ('examples', 10)])
+        self.assertEqual((snap.live, snap.effect, snap.positional), ('yes', 'read', ()))
+        self.assertEqual((diff.live, diff.effect, diff.positional), ('yes', 'read', ('snapshot',)))
+        for needle in ('Read-only', 'UncrashedMCP.snapshots', 'fingerprint', 'start gate', 'metres', 'level order'):
+            self.assertIn(needle, snap.fn.__doc__)
+        for needle in ('Read-only', 'session', 'row+position', 'Refuses', 'gate order', 'not visual'):
+            self.assertIn(needle, diff.fn.__doc__)
+
+    def test_check_opening_surface(self):
+        op = api.OPERATIONS['check_opening']
+        self.assertEqual([(p.name, p.annotation, p.default) for p in op.params()],
+                         [('path', list[list[float]], EMPTY), ('profile', str, '5inch'), ('margin_m', float | None, None),
+                          ('channel', str, 'Pawn'), ('spacing_m', float, .25), ('dims_m', list[float] | None, None),
+                          ('near_m', float, 5.0), ('top', int, 10)])
+        self.assertEqual((op.live, op.effect, op.positional, op.variadic), ('yes', 'read', ('path',), 'path'))
+        for needle in ('Read-only', 'FIRST obstruction', 'hit time', 'live-collision', 'override-active',
+                       'bounds-estimate', 'unverified', 'NOT clearance', 'body only', 'rounded', 'Slow', 'metres',
+                       'not a flight test', 'per call'):
+            self.assertIn(needle, op.fn.__doc__)
 
     def test_params_are_resolved_and_hide_private_ones(self):
         params = api.OPERATIONS['agent_batch'].params()
@@ -103,7 +144,7 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(by_live['no'], {'status', 'list_gates', 'search_assets', 'get_assets', 'list_maps', 'inspect_map',
                                          'noncolliding_alternatives'})
         self.assertEqual(by_live['mixed'], {'check_performance', 'consolidate_scenery'})
-        self.assertEqual(len(by_live['yes']), 28)
+        self.assertEqual(len(by_live['yes']), 32)
         self.assertEqual({n for n, op in api.OPERATIONS.items() if op.effect == 'write'},
                          {'load_live', 'save_live', 'agent_exec', 'agent_batch', 'agent_unload', 'clearing_zones',
                           'edit_group', 'undo_edit', 'undo_collision', 'define_assembly', 'set_collision',
@@ -126,7 +167,8 @@ class RegistryTests(unittest.TestCase):
             'list_groups': ('prefix',), 'edit_group': ('group',), 'undo_edit': ('transaction',),
             'undo_collision': ('transaction',), 'define_assembly': ('name',), 'check_assembly': ('name',),
             'set_collision': ('mode',), 'check_performance': ('name',), 'consolidate_scenery': ('name',),
-            'check_route_clearance': ('source',),
+            'check_route_clearance': ('source',), 'capture_sheet': ('poses',), 'scene_diff': ('snapshot',),
+            'check_opening': ('path',),
         }
         aliases = {}
         for name, op in api.OPERATIONS.items():
@@ -142,7 +184,7 @@ class RegistryTests(unittest.TestCase):
                 aliases[alias] = name
         self.assertEqual(aliases, {'exec': 'agent_exec', 'batch': 'agent_batch', 'log': 'agent_log', 'unload': 'agent_unload'})
         self.assertEqual({n: op.variadic for n, op in api.OPERATIONS.items() if op.variadic},
-                         {'get_assets': 'ids', 'sample_terrain': 'points'})
+                         {'get_assets': 'ids', 'sample_terrain': 'points', 'check_opening': 'path'})
         self.assertEqual({n: op.rest for n, op in api.OPERATIONS.items() if op.rest}, {'agent_exec': 'command'})
         self.assertEqual({n: op.stdin for n, op in api.OPERATIONS.items() if op.stdin}, {'agent_batch': 'commands'})
 
@@ -304,7 +346,8 @@ class GuideTests(unittest.TestCase):
         guide = self.flat(api.GUIDE)
         for topic in self.CLI_TOPICS:
             self.assertIn(self.flat(topic), guide, topic)
-        for slow in ('check_collisions', 'load_live', 'consolidate_scenery --apply', 'check_route_clearance'):
+        for slow in ('check_collisions', 'load_live', 'consolidate_scenery --apply', 'check_route_clearance',
+                     'check_opening'):
             self.assertIn(slow, self.flat(api.GUIDE.split('SLOW COMMANDS')[1].split('AUDITS')[0]))
 
     def test_guide_speaks_cli_and_stays_compact(self):
@@ -473,6 +516,14 @@ class DelegationTests(unittest.TestCase):
             self.assertEqual(api.call('consolidate_scenery', rows=['NewRow_1'], preview=False, x0=0, y0=0, x1=5, y1=5), {
                 'args': ['CAT'], 'kwargs': {'name': '', 'region': [0, 0, 5, 5], 'rows': ['NewRow_1'], 'preview': False,
                                             'tolerance': .02, 'max_size': 64, 'limit': 20}})
+
+    def test_scene_snapshot_and_diff_forward_by_name(self):
+        with patch.object(api.snapshots, 'scene_snapshot', echo), patch.object(api.snapshots, 'scene_diff', echo):
+            self.assertEqual(api.call('scene_snapshot', box=[0, 0, 1, 1], name='n'),
+                             {'args': [], 'kwargs': {'group': '', 'box': [0, 0, 1, 1], 'name': 'n'}})
+            self.assertEqual(api.call('scene_diff', 's', examples=3), {'args': ['s'], 'kwargs': {
+                'group': None, 'box': None, 'position_m': .01, 'rotation_deg': .1, 'scale': .001,
+                'gate_position_m': .01, 'examples': 3}})
 
     def test_route_clearance_forwards_every_parameter_by_name(self):
         with patch.object(api.clearance, 'check_route_clearance', echo):
@@ -972,7 +1023,12 @@ class SoftFailureTests(unittest.TestCase):
 
     def test_only_these_operations_have_a_predicate(self):
         self.assertEqual({n for n, op in api.OPERATIONS.items() if op.check},
-                         {'load_live', 'save_live', 'agent_unload', 'set_collision'})
+                         {'load_live', 'save_live', 'agent_unload', 'set_collision', 'capture_sheet'})
+
+    def test_capture_sheet(self):
+        self.assertIsNone(self.check('capture_sheet', {'poses': 3, 'failed_count': 0}))
+        self.assertEqual(self.check('capture_sheet', {'poses': 3, 'failed_count': 1}),
+                         '1 of 3 poses failed; see shots[].error')
 
     def test_load_live(self):
         ok = {'failed': [], 'failed_count': 0, 'camera': {'x': 1.0}, 'clearing_zones': {'native': ['zones 0']}}

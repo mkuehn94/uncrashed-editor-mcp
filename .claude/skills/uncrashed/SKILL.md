@@ -17,7 +17,9 @@ every command, `./uc help <command>` its parameters and examples, `./uc help ver
   `consolidate_scenery NAME` (preview only).
 - **Live (track editor open):** `exec mapinfo` first; `batch FILE` or `... | ./uc batch -` (one agent command
   per line); `sample_terrain x,y x,y`; `inspect_site x,y,z x,y,z`; `capture_view [x y z yaw pitch] --out DIR/`
-  then open the PNG yourself; `move_camera x y z yaw`; `save_live [NAME]`.
+  then open the PNG yourself; `capture_sheet @poses.txt --out DIR/` (up to 60 `label x y z yaw pitch` lines into one
+  labelled sheet.png; gates stay visible); `move_camera x y z yaw`; `save_live [NAME]`;
+  `scene_snapshot --name before` then `scene_diff before` (read-only change counts and gate/start verdicts).
 - **Agent verbs:** `spawn ROW x y z [pitch yaw roll] [sx sy sz] [group=tag]`, then `drop last` on the next
   line to rest it on what is below; `transform ACTOR x y z p y r sx sy sz` (`-` keeps a value); `destroy ACTOR`;
   `actors x y z radius`.
@@ -30,12 +32,13 @@ every command, `./uc help <command>` its parameters and examples, `./uc help ver
   failed ones, never the whole file.
 - **Never re-send** a command that timed out, was interrupted or failed with `may have run` / `UNKNOWN`;
   check `./uc last` (last finished reply) and `./uc exec mapinfo` first. Only an error saying `nothing was
-  sent` is safe to retry. Give slow commands (`check_collisions`, `load_live`, big batches, `check_route_clearance`) a long
+  sent` is safe to retry. Give slow commands (`check_collisions`, `load_live`, big batches, `check_route_clearance`, `check_opening`) a long
   shell timeout or run them in the background.
 - **Ask the user before:** `load_live` (replaces the scene), `exec` with `clear` / `destroybox` / `base` /
   `setmap` (`destroy`, `destroyat` and `replace` have no undo either), `--apply` on deletes or `consolidate_scenery`, and overwriting a saved map.
 - **Before saving a build:** `check_collisions`, `check_foundations`, `check_environment` (and
-  `check_route_clearance` for races). A clean audit is not verification: look at captures.
+  `check_route_clearance` for races; `check_opening x,y,z x,y,z x,y,z` for one opening: first obstruction by path
+  position, unverified objects beside it are not clearance). A clean audit is not verification: look at captures.
 - **Output** is compact text (`./uc help output`); `--json` gives JSON for `jq`, `--pick a,b.c` keeps fields.
   With pipes use `set -o pipefail`.
 

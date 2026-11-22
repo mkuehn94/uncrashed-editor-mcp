@@ -22,9 +22,9 @@ Example builts of a creative agent.
 ## Optimised for
 
 - **Speed.** One `./uc batch` (`agent_batch`) places a whole group (up to thousands of assets) at once
-- **Visual awareness.** `capture_view` renders a compressed screenshot from an arbitrary camera pose, all that in the background.
+- **Visual awareness.** `capture_view` renders a compressed screenshot from an arbitrary camera pose, all that in the background; `capture_sheet` tiles up to 60 poses into one labelled contact sheet.
 - **COllision checks.** `drop last` puts an object on whatever is under it vertex perfectly.
-- **Self checking.** It makes use of the camera to look for inconsitencies.
+- **Self checking.** It makes use of the camera to look for inconsitencies. `scene_snapshot` / `scene_diff` count what an edit really changed and whether gate order, gate transforms and the start gate stayed put. `check_opening` names the first obstruction along a short approach -> opening -> exit path and says what was not verified.
 - **Robust.** Every command runs under a custom fault guard on the game thread, meaning extra protection from crashes.
 - **Not version specific.** No hardcoded addresses. Engine globals are found dynamically, only major track editor changes might break it.
 - **Catalogue aware** Knows about the assets in the game, the bounds, collision etc.

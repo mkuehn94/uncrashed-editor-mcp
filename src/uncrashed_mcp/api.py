@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
-from . import agent, assemblies, clearance, collide, consolidate, environment, groups, managed, performance, scenery
+from . import agent, assemblies, clearance, collide, consolidate, environment, groups, managed, opening, performance, scenery, sheet, snapshots
 from .catalog import load_catalog
 from .mapfile import list_user_maps, load_map, sanitize_name
 from .paths import game_running, maps_dir, steam_id, workshop_dir
@@ -142,13 +142,13 @@ geometric check of a spline, not a flight test.
 
 GUIDE = """
 Uncrashed track editor from the shell: an agent DLL in the game calls the editor's own functions (Spawn
-Asset, SpawnTrackAsset, SaveMap). Nothing is clicked; changes show at once.
+Asset, SpawnTrackAsset, SaveMap).
 
 BASICS
 Help: `./uc help` (commands: ! acts at once, ~ previews unless --apply), `./uc help <command>`,
 `./uc help verbs` (agent commands), `./uc help output` (reply format). Commands use metres and degrees
-(Z up, yaw 0 = +X, 90 = +Y); agent commands (exec = agent_exec, batch = agent_batch) use centimetres. Rows
-are catalogue ids (NewRow_N). Replies are short: ask for more (--max_lines, --top, --limit) only when
+(Z up, yaw 0 = +X, 90 = +Y); agent commands (exec = agent_exec, batch = agent_batch) use centimetres.
+Replies are short: ask for more (--max_lines, --top, --limit) only when
 needed. --json prints JSON, --pick a,b.c keeps fields.
 Exit codes: 0 ok; 1 raised (a live change may be partly applied); 2 usage error (nothing ran); 3 ran but
 reported failures. Every failure prints one stderr line `error: ...`; pipes need `set -o pipefail`.
@@ -168,7 +168,7 @@ Batch: generate commands with a script kept in the project (not /tmp), then `./u
 drop: what stands on something (car on road, crate on shelf) is spawned a little high, then `drop last` on
 the line directly after its spawn (same batch only) rests it exactly on what is under it, using the real
 shapes of both. Stack bottom-up. Ground tiles sit 9 to 13 cm above z=0, so an object spawned at z=0 on a
-tile is sunk in unless dropped; drop also lifts sunk-in or overlapping objects.
+tile is sunk in unless dropped.
 Quote an exec command containing * ! # ; | < > & as one argument.
 
 LOOK
@@ -176,7 +176,8 @@ capture_view renders a fresh engine image to a PNG (--out file.png or dir/; view
 window activation, desktop switch, UI or editor camera movement. x y z [yaw pitch] set an independent pose.
 No silent foreground fallback: only `--backend window --foreground` may focus the game.
 move_camera / camera_pose / release_camera drive the editor camera natively; a hold ends after a 120-second
-watchdog. With several agents, give capture_view an explicit pose and let one agent own the editor camera.
+watchdog. With several agents, use explicit poses; let one agent own the editor camera. capture_sheet
+tiles up to 60 poses in one labelled PNG.
 get_object_bounds: world AABB / optional mesh OBB. get_world_bounds: placed or terrain extents; playable
 bounds are unknown unless explicitly tagged, never inferred from landscape size.
 
@@ -186,8 +187,8 @@ setmap (retargets Save). load_live removes everything placed first; save_live ov
 auto-saves.
 
 SLOW COMMANDS
-check_collisions (a minute per 27,000 objects), load_live, big batches, `consolidate_scenery --apply` and
-check_route_clearance outlast default shell timeouts: raise the timeout or run them in the background.
+check_collisions (a minute per 27,000 objects), load_live, big batches, `consolidate_scenery --apply`,
+check_route_clearance and check_opening outlast default shell timeouts: raise the timeout or run them in the background.
 NEVER re-send a command that timed out, failed or was interrupted: it was sent and may still run or be
 partly applied (only an error containing `nothing was sent` is safe to retry). First check `./uc last`
 (last finished reply), `./uc exec mapinfo`, `./uc edit_history`, `./uc log` (agent_log). stderr `waiting
@@ -201,28 +202,29 @@ check_foundations (unsupported footprint portions) and check_environment (landsc
 conflicts). A clean check_collisions is not full support or environment validation.
 define_assembly gives groups foundation/structure/cantilever/decoration roles; check_assembly measures
 anchors and reciprocal contact paths, not load capacity. Intentional overhangs need a path, not full
-ground-footprint coverage; connectivity is not engineering certification. Keep running check_environment.
+ground-footprint coverage; connectivity is not engineering certification.
 check_route_clearance sweeps the craft volume along a smooth line through the race gates (live, map:<name>)
-or waypoints (points). Profiles 5inch, tiny_whoop, cinewhoop, 7inch, fixed_wing, car/truck (roads); --dims_m
-and --margin_m customise. It reports collisions, gate openings too small (probed from the gate centre),
+or waypoints (points). Profiles 5inch, tiny_whoop, cinewhoop, 7inch, fixed_wing, car/truck (roads). It
+reports collisions, gate openings too small (probed from the gate centre),
 tight spots, low ceilings or ground and road corridor width, each with a move_camera pose. Overlap-only
 triggers and flythrough objects are not obstacles. The channel defaults to Pawn, unverified for the drone
-(--channel PhysicsBody, game3, 16). A geometric check of a spline, not a flight test.
+(--channel game3). A geometric check of a spline, not a flight test.
+check_opening x,y,z ...: first obstruction by path position; findings are live-collision,
+override-active or unverified (no hit beside unverified objects is not clearance).
 check_performance: offline with a saved map name, or live (--measure samples frame time, optionally at
---poses). Budgets are heuristic UE4 defaults: override them. Live grading counts placed objects only;
+--poses). Budgets are heuristic UE4 defaults. Live grading counts placed objects only;
 *_base figures are informational.
 
 EDITS (~ commands: preview first, then --apply)
 list_groups / edit_group: transform, clone, delete, regroup. undo_edit / edit_history: journaled inverses;
 clone/delete undo does not preserve arbitrary Blueprint/material runtime state. undo_edit of an interrupted
 edit recovers its journal in the preview; that undo also reverts later changes to its groups.
+Read-only scene_snapshot before, scene_diff after: change counts, gate verdicts.
 clearing_zones persists portable intent and masks/restores supported base flora while the DLL is resident;
 the stock game alone ignores sidecars. Partial source coverage needs --allow_partial. Preserve both
 UncrashedMCP sidecars when copying maps.
-consolidate_scenery merges edge-to-edge plain-box triplanar tiles (ground, Concrete Wall01/Floor01/Column...)
-into fewer scaled copies. NAME only previews a saved map file. To apply: save your work, load_live the map,
-run without NAME (preview, then --apply). The largest merge goes first as a canary; each replacement is
-verified and auto-undone on mismatch. Undo with undo_edit per returned transaction, newest first.
+consolidate_scenery merges edge-to-edge plain-box triplanar tiles into fewer scaled copies. NAME only previews a saved map file. To apply: save your work, load_live the map,
+run without NAME (preview, then --apply). The largest merge goes first as a canary; a mismatch is undone. Undo with undo_edit per returned transaction, newest first.
 Non-triplanar rows are never merged; thin them by hand.
 
 COLLISION
@@ -1131,3 +1133,92 @@ def check_route_clearance(
         source=source, points=points, profile=profile, margin_m=margin_m, spacing_m=spacing_m, dims_m=dims_m,
         kind=kind, channel=channel, probe_m=probe_m, directions=directions, closed=closed, laps=laps,
         align_gates=align_gates, ignore_start_m=ignore_start_m, max_issues=max_issues, catalog=_catalog())
+
+
+def _sheet_incomplete(result: dict) -> str | None:
+    if result.get('failed_count'):
+        return f"{result['failed_count']} of {result.get('poses')} poses failed; see shots[].error"
+    return None
+
+
+@op('Capture many poses into one labelled contact sheet PNG', positional=('poses',), check=_sheet_incomplete,
+    examples=("./uc capture_sheet 'start 0 -20 6 90 -10; gate1 30 0 8 0 -5' --out sheets/",
+              "./uc capture_sheet 'a 0 0 20 0 -60, b 0 0 20 90 -60' --width 320 --height 180 --columns 2"))
+def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int = 0, out: str = '') -> dict:
+    """Render up to 60 explicit poses offscreen and tile them into one labelled contact sheet.
+
+    poses: items "label x y z yaw pitch" (metres, degrees; label optional) separated by
+    newlines, ';' or ','; '#' starts a comment up to the end of the line; "@path" reads a text
+    file with one pose per line. Each frame is width x height (64..1920 x 64..1080, default
+    480x270); columns 0 = automatic. Each pose takes the agent lock on its own (about 1.5 s per
+    pose) through the engine capture (editor camera FOV, roll 0; the editor camera is not moved).
+    A failed pose is reported in shots[].error and drawn as a FAILED tile; the others continue.
+    Writes sheet.png, one PNG per pose and index.json into out (a new or empty directory, created
+    at the first frame; a non-empty one is refused; default a new folder under
+    /tmp/uncrashed-shots/). Editor helper lines are
+    hidden from captures; gates, gate numbers, the start arch and a race guide are not.
+    A sheet is evidence for looking, not proof of visual quality, clearance or a flyable line.
+    """
+    return sheet.capture_sheet(poses, width=width, height=height, columns=columns, out=out)
+
+
+@op('Stamped snapshot of placed objects and gates (read-only)',
+    examples=('./uc scene_snapshot --name before_bridge', './uc scene_snapshot --group houses --box -50,-50,50,50'))
+def scene_snapshot(group: str = '', box: list[float] | None = None, name: str = '') -> dict:
+    """Read-only stamped snapshot of the open scene; changes nothing in the scene.
+
+    One full group export (~1 s for 56k objects; the editor freezes meanwhile) plus the race gates. group limits it
+    to a group and its group.* / group_* children, box = x0,y0,x1,y1 metres on pivots. name: 1..64 of letters,
+    digits, _ . - (default snap-<date>-<time>); an existing name is refused. Writes gzip JSON (row, group, native
+    transform, actor id, session) to UncrashedMCP.snapshots/<name>.json.gz beside the saved map (saved map required).
+    Returns only the stamp: map folder, base, session token, object count, scope count, a content fingerprint
+    (sorted rounded row/group/transform, no actor ids), gate count and order+transform fingerprint, start gate and
+    the file. Gate order is live level order. Equal fingerprints mean the same rounded states, not a working build.
+    """
+    return snapshots.scene_snapshot(group=group, box=box, name=name)
+
+
+@op('Compare the open scene with a scene_snapshot (read-only)', positional=('snapshot',),
+    examples=('./uc scene_diff before_bridge', './uc scene_diff before_bridge --position_m 0.05 --examples 20'))
+def scene_diff(snapshot: str, group: str | None = None, box: list[float] | None = None, position_m: float = 0.01,
+               rotation_deg: float = 0.1, scale: float = 0.001, gate_position_m: float = 0.01,
+               examples: int = 10) -> dict:
+    """Read-only diff of the open scene against a scene_snapshot name or .json.gz file; changes nothing.
+
+    Refuses a snapshot of another map folder or base, an unreadable or edited snapshot, and a scope other than the
+    snapshot's own when the snapshot was scoped. group / box (x0,y0,x1,y1 metres, pivots) narrow a whole-scene
+    snapshot. Same session: objects pair by actor id first; then (always) by same row nearest within position_m. When
+    the session differs (game restart, other base or folder) actor ids are meaningless, so only row+position pairing is
+    used and an object moved further than position_m counts as removed + added. Counts added, removed, moved,
+    rotated, scaled, regrouped, row_changed, unchanged; tolerances position_m (metres), rotation_deg, scale (absolute),
+    gate_position_m. Verdict lines: identity, gate order, gate transforms, start gate, objects. Gates are compared in
+    live level order (not proven race order). Returns the first `examples` changes; the full diff is gzip JSON under
+    UncrashedMCP.snapshots/diffs/. Geometry bookkeeping only: not visual, connectivity or flight evidence.
+    """
+    return snapshots.scene_diff(snapshot, group=group, box=box, position_m=position_m, rotation_deg=rotation_deg,
+                                scale=scale, gate_position_m=gate_position_m, examples=examples)
+
+
+@op('First obstruction on a short approach -> opening -> exit path', positional=('path',), variadic='path',
+    examples=('./uc check_opening 0,-8,4 0,0,4 0,8,4', './uc check_opening 0,-8,4 0,0,4 0,8,5 --profile cinewhoop --margin_m 0.3'))
+def check_opening(path: list[list[float]], profile: str = '5inch', margin_m: float | None = None,
+                  channel: str = 'Pawn', spacing_m: float = 0.25, dims_m: list[float] | None = None,
+                  near_m: float = 5.0, top: int = 10) -> dict:
+    """Read-only opening check: sweep the craft body along 2..8 x,y,z points (approach -> opening -> exit,
+    metres, up to 300 m) and report the FIRST obstruction by position along the path (sample, then hit time), not
+    by severity, with its actor, row, name and class. Slow like check_route_clearance (one native sweep job plus
+    collision queries). profile / dims_m=[width,length,height] / margin_m / channel as in check_route_clearance;
+    spacing_m 0.1..2. The path is a spline through the points, so corners are rounded (spline_max_offset_m), and
+    the swept box is the craft body only: margin only flags probe near-misses. Every finding carries an evidence
+    class: live-collision (native hit, no override), override-active (the object has a DLL collision override per
+    collision_state: the stock default was not what was tested; also hits passed only because of an override),
+    bounds-estimate (bounds-only data; this check produces none) or unverified (unknown response, or a placed object
+    whose pivot lies within near_m of the path box that no trace touched: Blueprint buildings can return no hits,
+    so no hit beside them is NOT clearance; hits on objects whose override lookup failed are unverified and make the
+    result incomplete). Probe near-misses include gate frames. Findings merge per run of consecutive samples
+    (distance_m .. last_distance_m). The first line, verdict, always states the unverified, near-miss and
+    override counts. top caps returned findings and objects. Full JSON in a new
+    /tmp/uncrashed-clearance/opening-<time>-<id>.json per call. Geometry only: not a flight test.
+    """
+    return opening.check_opening(path, profile=profile, margin_m=margin_m, channel=channel, spacing_m=spacing_m,
+                                 dims_m=dims_m, near_m=near_m, top=top, catalog=_catalog())

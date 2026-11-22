@@ -8,7 +8,8 @@
    "groups": [
     "garage"
    ],
-   "undo_transaction": null
+   "undo_transaction": null,
+   "rollback_complete": null
   },
   {
    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -19,7 +20,8 @@
     "trees",
     "trees2"
    ],
-   "undo_transaction": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+   "undo_transaction": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "rollback_complete": null
   },
   {
    "id": "0f3a9c2e7b1d4856a0c9e8f7d6b5a432",
@@ -30,7 +32,8 @@
     "house.floor",
     "house.walls"
    ],
-   "undo_transaction": null
+   "undo_transaction": null,
+   "rollback_complete": null
   }
  ],
  "total": 3,

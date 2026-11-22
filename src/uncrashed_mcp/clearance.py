@@ -483,8 +483,12 @@ def _severity(clearance, margin):
     return 3 if clearance < 0 else 2 if clearance < margin / 2 else 1
 
 
-def sample_findings(samples, parsed, profile, ndirs, ignore_start_m=0.0, rows=None):
-    """Per-sample findings (before merging) and per-sample minimum clearance."""
+def sample_findings(samples, parsed, profile, ndirs, ignore_start_m=0.0, rows=None, judge_gates=False):
+    """Per-sample findings (before merging) and per-sample minimum clearance.
+
+    judge_gates=False drops tight/ceiling_low/ground_low findings on gates (route clearance judges each gate
+    opening separately); check_opening passes True to keep them."""
+    skip_gate = lambda ob: not judge_gates and ob and ob['kind'] == 'gate'  # noqa: E731
     ground = profile['kind'] == 'ground'
     half, margin = profile['half_extents_m'], profile['margin']
     total = samples[-1]['d'] if samples else 0
@@ -535,19 +539,19 @@ def sample_findings(samples, parsed, profile, ndirs, ignore_start_m=0.0, rows=No
         elif horiz:
             c, k = min(horiz)
             ob = obstacle(probes[k][1], probes[k][2], parsed, rows)
-            if c < margin and not (ob and ob['kind'] == 'gate'):  # gate openings are judged per gate
+            if c < margin and not skip_gate(ob):  # gate openings are judged per gate
                 found.append({'kind': 'tight', 'sample': s['i'], 'severity': _severity(c, margin), 'measure_m': c,
                               'direction_deg': round(360 * k / ndirs, 1), 'obstacle': ob})
         up, down = cl[ndirs], cl[ndirs + 1]
         if up is not None and up < margin:
             ob = obstacle(probes[ndirs][1], probes[ndirs][2], parsed, rows)
-            if not (ob and ob['kind'] == 'gate'):  # a gate's top bar is judged per gate (gate_height_small)
+            if not skip_gate(ob):  # a gate's top bar is judged per gate (gate_height_small)
                 found.append({'kind': 'overhead_low' if ground else 'ceiling_low', 'sample': s['i'],
                               'severity': _severity(up, margin), 'measure_m': up, 'obstacle': ob})
         near_end = s['d'] < ignore_start_m or total - s['d'] < ignore_start_m
         if not ground and down is not None and down < margin and not near_end:
             ob = obstacle(probes[ndirs + 1][1], probes[ndirs + 1][2], parsed, rows)
-            if not (ob and ob['kind'] == 'gate'):
+            if not skip_gate(ob):
                 found.append({'kind': 'ground_low', 'sample': s['i'], 'severity': _severity(down, margin), 'measure_m': down,
                               'obstacle': ob})
         rec['up'], rec['down'] = up, down

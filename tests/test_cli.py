@@ -480,6 +480,13 @@ class PointTests(Case):
         self.assertEqual(self.bound('sample_terrain', 'sample_terrain', '[[1,2],[3,4]]', '5,6')['points'],
                          [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
 
+    def test_check_opening_path_as_variadic_points(self):
+        got = self.bound('check_opening', 'check_opening', '0,-8,4', '0,0,4', '0,8,5', '--profile', 'cinewhoop',
+                         '--margin_m', '0.3', '--channel', 'game3')
+        self.assertEqual(got, {'path': [[0.0, -8.0, 4.0], [0.0, 0.0, 4.0], [0.0, 8.0, 5.0]], 'profile': 'cinewhoop',
+                               'margin_m': .3, 'channel': 'game3'})
+        self.refused('check_opening', 'check_opening', needle='missing PATH')
+
     def test_points_option_takes_one_token_and_repeats(self):
         got = self.bound('check_route_clearance', 'check_route_clearance', 'points', '--points', '[[0,0,5],[40,10,8]]')
         self.assertEqual(got, {'source': 'points', 'points': [[0.0, 0.0, 5.0], [40.0, 10.0, 8.0]]})
@@ -901,6 +908,9 @@ class HelpTests(Case):
         self.assertEqual({name for name, mark in marks.items() if mark == '~'},
                          {'clearing_zones', 'edit_group', 'undo_edit', 'define_assembly', 'set_collision',
                           'undo_collision', 'consolidate_scenery'})
+        self.assertIn('\n  capture_sheet POSES  Capture many poses', out)
+        self.assertIn('\n  scene_diff SNAPSHOT  Compare the open scene', out)
+        self.assertIn('\n  check_opening PATH...  First obstruction', out)
         self.assertIn('\n  search_assets [QUERY]  Find catalogue rows', out)
         self.assertIn('\n  get_assets IDS...  ', out)
         self.assertIn('\n  move_camera X Y Z YAW [PITCH]  ', out)

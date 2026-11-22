@@ -306,6 +306,8 @@ def undo_edit(transaction: str, preview: bool = True) -> dict:
             raise ValueError('transaction already matches original state')
         # Persisted, not derived from the status: the recovering preview has already rewritten that.
         recovered = {'recovered': RECOVERED} if journal.get('recovered') else {}
+        if rollback_complete(journal) is not None:
+            recovered['rollback_complete'] = rollback_complete(journal)
         if preview:
             # deletes_not_in_before: objects the undo deletes because the before-snapshot does not have them
             return {'transaction': transaction, 'preview': True, 'changes': len(commands), 'deletes_not_in_before': added,
@@ -315,6 +317,19 @@ def undo_edit(transaction: str, preview: bool = True) -> dict:
         _write_journal(path,journal)
         result.update(recovered)
         return result
+
+
+def rollback_complete(journal: dict) -> bool | None:
+    """The native 'rollback complete=N' line of a failed edit's result, or None when the journal has none."""
+    text = journal.get('native_result')
+    if not isinstance(text, str):
+        return None
+    for line in text.splitlines():
+        if line.startswith('rollback complete='):
+            value = line.split('=', 1)[1].strip()
+            if value in ('0', '1'):
+                return value == '1'
+    return None
 
 
 def re_transaction(value: str) -> bool:
@@ -329,5 +344,7 @@ def edit_history(limit: int = 20) -> dict:
     entries=[]
     for path in paths[:limit]:
         data=json.loads(path.read_text())
-        entries.append({k:data.get(k) for k in ('id','label','status','created','groups','undo_transaction')})
+        entry = {k:data.get(k) for k in ('id','label','status','created','groups','undo_transaction')}
+        entry['rollback_complete'] = rollback_complete(data)
+        entries.append(entry)
     return {'transactions': entries, 'total': len(paths), 'directory': str(root/HISTORY)}
