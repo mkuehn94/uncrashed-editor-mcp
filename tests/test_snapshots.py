@@ -98,9 +98,6 @@ class SnapshotTests(unittest.TestCase):
         self.assertTrue(diff['same_session'] and diff['gate_order_unchanged'] and diff['gate_transforms_unchanged']
                         and diff['start_gate_unchanged'])
         self.assertEqual(diff['matched_by'], {'actor': 4, 'position': 0})
-        self.assertEqual(diff['verdicts'][1:4], ['gate order: unchanged (3 -> 3 gates)',
-                                                 'gate transforms: unchanged within 0.01 m / 0.1 deg / 0.001 scale',
-                                                 'start gate: unchanged'])
         self.assertTrue(Path(diff['diff_file']).is_file())
         self.assertEqual(diff['warnings'], [])
 

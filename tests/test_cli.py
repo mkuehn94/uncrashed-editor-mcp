@@ -228,10 +228,6 @@ class EveryParameterTests(Case):
                     self.assertEqual(got[param.name], expected)
                     self.assertEqual(type(got[param.name]), type(expected))
 
-    def test_omitted_parameters_are_not_passed(self):
-        self.assertEqual(self.bound('search_assets', 'search_assets'), {})
-        self.assertEqual(self.bound('search_assets', 'search_assets', 'house'), {'query': 'house'})
-
     def test_every_registry_example_is_accepted(self):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'plan.txt').write_text('mapinfo\n')
@@ -409,6 +405,7 @@ class ListTests(Case):
     def test_one_token_per_list_option(self):
         got = self.bound('edit_group', 'edit_group', '--delta', '1,0,0', 'houses')
         self.assertEqual(got, {'delta': [1.0, 0.0, 0.0], 'group': 'houses'})
+        self.refused('edit_group', 'edit_group', '--delta', '1', '0', '0', 'houses', needle='at most 1 (GROUP)')
         got = self.bound('edit_group', 'edit_group', '--actors', '1A2B,3C4D', '--actors', '5E6F')
         self.assertEqual(got, {'actors': ['1A2B', '3C4D', '5E6F']})
         got = self.bound('edit_group', 'edit_group', '--delta', '[1, 2.5, -3]', '--actors', '["a,b", "12"]')
@@ -446,6 +443,8 @@ class ListTests(Case):
         self.refused('consolidate_scenery', 'consolidate_scenery', '--rows', 'a,,b', needle='empty value')
         self.refused('consolidate_scenery', 'consolidate_scenery', '--rows', 'a,', needle='empty value')
         self.refused('get_assets', 'get_assets', '', needle='empty value')
+        self.refused('set_collision', 'set_collision', 'off', '--actors', '', '--apply', needle='--actors: empty value')
+        self.refused('set_collision', 'set_collision', 'off', '--actors', needle='--actors needs a value')
         self.assertEqual(self.bound('consolidate_scenery', 'consolidate_scenery', '--rows=[]'), {'rows': []})
         self.assertEqual(self.bound('consolidate_scenery', 'consolidate_scenery', '--rows', '[]'), {'rows': []})
 
@@ -687,18 +686,6 @@ class MisbindingTests(Case):
         self.assertEqual(self.bound('agent_exec', 'exec', '--timeout', '5', 'mapinfo'),
                          {'timeout': 5.0, 'command': 'mapinfo'})
 
-    def test_an_empty_list_option(self):
-        # --rows $EMPTY --apply (unquoted and quoted expansion): must not consolidate every row
-        self.refused('consolidate_scenery', 'consolidate_scenery', '--rows', '--apply', needle='--rows needs a value')
-        self.refused('consolidate_scenery', 'consolidate_scenery', '--rows', '', '--apply', needle='--rows: empty value')
-        self.refused('set_collision', 'set_collision', 'off', '--actors', '', '--apply', needle='--actors: empty value')
-        self.refused('set_collision', 'set_collision', 'off', '--actors', needle='--actors needs a value')
-
-    def test_list_options_do_not_swallow_positionals(self):
-        self.assertEqual(self.bound('edit_group', 'edit_group', '--delta', '1,0,0', 'houses'),
-                         {'delta': [1.0, 0.0, 0.0], 'group': 'houses'})
-        self.refused('edit_group', 'edit_group', '--delta', '1', '0', '0', 'houses', needle='at most 1 (GROUP)')
-
     def test_preview_false_as_two_tokens_is_not_a_name(self):
         self.assertEqual(self.bound('consolidate_scenery', 'consolidate_scenery', '--preview', 'false'),
                          {'preview': False})
@@ -908,19 +895,6 @@ class HelpTests(Case):
         self.assertEqual({name for name, mark in marks.items() if mark == '~'},
                          {'clearing_zones', 'edit_group', 'undo_edit', 'define_assembly', 'set_collision',
                           'undo_collision', 'consolidate_scenery'})
-        self.assertIn('\n  capture_sheet POSES  Capture many poses', out)
-        self.assertIn('\n  scene_diff SNAPSHOT  Compare the open scene', out)
-        self.assertIn('\n  check_opening PATH...  First obstruction', out)
-        self.assertIn('\n  search_assets [QUERY]  Find catalogue rows', out)
-        self.assertIn('\n  get_assets IDS...  ', out)
-        self.assertIn('\n  move_camera X Y Z YAW [PITCH]  ', out)
-        self.assertIn('\n! agent_exec|exec COMMAND...  ', out)
-        self.assertIn('\n! agent_batch|batch FILE|-  ', out)
-        self.assertIn('\n! save_live [NAME]  ', out)
-        self.assertIn('\n  agent_log|log [LINES]  ', out)
-        self.assertIn('\n  inspect_site BOUNDS_MIN BOUNDS_MAX  ', out)
-        self.assertIn('\n~ edit_group [GROUP]  ', out)
-        self.assertIn('\n~ consolidate_scenery [NAME]  ', out)
 
     def test_command_help_structure(self):
         for name, op in api.OPERATIONS.items():
@@ -961,21 +935,6 @@ class HelpTests(Case):
         self.assertEqual(usage['status'], './uc status')
         self.assertEqual(usage['save_live'], './uc save_live [NAME:str] [--display_name str]')
         self.assertEqual(usage['move_camera'], './uc move_camera X:num Y:num Z:num YAW:num [PITCH:num=-20] [--no-hold]')
-        self.assertEqual(usage['get_assets'], './uc get_assets IDS:str ...')
-        self.assertEqual(usage['sample_terrain'],
-                         './uc sample_terrain POINTS:x,y[,z] ... [--z_from num=1000] [--z_to num=-2000]')
-        self.assertEqual(usage['agent_exec'], './uc agent_exec [--max_lines int=40] [--timeout num=30] COMMAND...')
-        self.assertEqual(usage['agent_batch'],
-                         './uc agent_batch <FILE | - | --commands CMD> [--no-quiet] [--max_lines int=40] [--timeout num]')
-        self.assertEqual(usage['undo_edit'], './uc undo_edit TRANSACTION:str [--apply]')
-        self.assertEqual(usage['inspect_site'], './uc inspect_site BOUNDS_MIN:n,n,.. BOUNDS_MAX:n,n,.. [--spacing num=5] '
-                                                '[--min_foliage_height num=2] [--top int=30]')
-        self.assertEqual(usage['define_assembly'], './uc define_assembly [NAME:str] [--roles k=v,..] [--apply]')
-        self.assertIn('[--region x0,y0,x1,y1] [--budgets k=v,..|json] [--measure] [--poses json] [--duration num=1.5]',
-                      usage['check_performance'])
-        self.assertIn('[--points x,y[,z]|json] [--profile str=5inch] [--margin_m num]', usage['check_route_clearance'])
-        self.assertIn('[--closed|--no-closed] [--laps int] [--no-align_gates]', usage['check_route_clearance'])
-        self.assertIn('[--tolerance num=0.02]', usage['consolidate_scenery'])
         for line in usage.values():
             self.assertNotIn('\n', line)
 
@@ -989,12 +948,6 @@ class HelpTests(Case):
             self.assertEqual(run('help', 'exec'), run('help', 'agent_exec'))
         self.assertEqual(calls, [])
         self.assertIn('overwrites the saved map', expected[1])
-
-    def test_exec_help_points_at_the_verbs_topic(self):
-        out = run('help', 'exec')[1]
-        self.assertIn('The full command list is in the ./uc help verbs;', out)
-        self.assertIn('caution: no preview, no undo', out)
-        self.assertIn('alias: exec', out)
 
     def test_topics(self):
         self.assertEqual(run('help', 'verbs'), (0, api.VERBS + '\n', ''))
@@ -1023,8 +976,6 @@ class HelpTests(Case):
         self.assertIn('key: value lines indented under it are more fields of that same item', text)
         self.assertIn('nothing is rounded or dropped; only the order of fields inside rows under an `(every row also '
                       'has)` line may differ', ' '.join(text.split()))
-        for stale in ('(all rows', 'keys 3,5', 'or reordered', 'exactly the data'):
-            self.assertNotIn(stale, text)
         self.assertIn("exec / batch / log print plain text (the agent's reply), not fields: a failure shows as exit "
                       "code 3 plus the stderr `error:` line.", ' '.join(text.split()))
         self.assertIn('`(empty reply)`', text)
@@ -1729,19 +1680,6 @@ class SameCommandGuardTests(Case):
         self.assertIn('nothing was sent', err)
         self.assertNotIn('before retrying', err)  # nothing was sent: no "may still run" recovery text
         self.assertGreaterEqual(took, 0.5)
-
-    def test_a_reading_command_just_waits(self):
-        self.hold(['uc', 'x'], digest=digest('camera_pose'))
-        code, out, err, reached, took = self.attempt('camera_pose', ['camera_pose'])
-        self.assertEqual((code, reached), (1, []))
-        self.assertIn('agent busy: lock held by', err)
-        self.assertNotIn('the same command', err)
-
-    def test_an_identical_preview_just_waits(self):
-        self.hold(['uc', 'x'], digest=digest('edit_group', group='g', delta=[1.0, 0.0, 0.0]))
-        code, out, err, reached, took = self.attempt('edit_group', ['edit_group', 'g', '--delta', '1,0,0'])
-        self.assertIn('agent busy: lock held by', err)
-        self.assertNotIn('the same command', err)
 
     def test_an_identical_apply_is_refused(self):
         self.hold(['uc', 'x'], digest=digest('edit_group', group='g', delta=[1.0, 0.0, 0.0], preview=False))

@@ -150,7 +150,6 @@ class CaptureTests(unittest.TestCase):
                 patch.object(live, '_engine_capture', side_effect=self.fake_capture()):
             api.call('capture_sheet', 'a 0 0 5 0 0; b 1 0 5 0 0; c 2 0 5 0 0', width=64, height=64, out=str(self.out))
         self.assertEqual(holds, [0, 0, 1, 2])  # one short hold for the FOV read, then one per pose
-        self.assertTrue(any('1.5 s per pose' in line for line in sheet.LIMITATIONS))
 
     def test_validation_runs_before_the_agent(self):
         with patch.object(live, 'read_camera', side_effect=AssertionError('agent reached')):

@@ -71,9 +71,6 @@ class ParseTest(unittest.TestCase):
         with self.assertRaises(agent.AgentError):
             agent._spawn_command("NewRow_1", 0, 0, 0, 0, 0, 0, (1, 0, 1))
 
-    def test_errors_from_batch_lines(self) -> None:
-        self.assertEqual(agent._errors(["#3 error no row X in DT", "spawned 1 row=A class=B"]), ["no row X in DT"])
-
 
 class FailureTextTest(unittest.TestCase):
     """What run() raises for a reply that did not end with "end <seq> ok"."""

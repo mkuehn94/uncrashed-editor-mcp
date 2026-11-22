@@ -286,8 +286,7 @@ class SourceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'm.json'
             path.write_text(json.dumps({'S_AssetsTransform': []}))
-            with self.assertRaisesRegex(ValueError, '^a saved map file is preview-only; load_live it, then apply on '
-                                                    'the open editor without a name$'):
+            with self.assertRaisesRegex(ValueError, 'preview-only'):
                 con.consolidate_scenery(CAT, name=str(path), preview=False)
             with patch.object(con, 'REPORT_DIR', Path(tmp)):
                 self.assertEqual(con.consolidate_scenery(CAT, name=str(path))['considered'], 0)

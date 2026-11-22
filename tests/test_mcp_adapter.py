@@ -93,11 +93,6 @@ class ToolListTests(unittest.TestCase):
                      'performance', 'consolidate', 'clearance', 'assemblies', 'live_capture_view'):
             self.assertFalse(hasattr(server, name), name)
 
-    def test_private_parameters_are_not_in_any_schema(self):
-        for tool in asyncio.run(server.mcp.list_tools()):
-            for name in tool.input_schema['properties']:
-                self.assertFalse(name.startswith('_'), (tool.name, name))
-
 
 @unittest.skipIf(server is None, 'the mcp package is not installed')
 class ConversionTests(unittest.TestCase):

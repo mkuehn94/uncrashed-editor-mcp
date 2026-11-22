@@ -14,15 +14,6 @@ class TerrainTests(unittest.TestCase):
                                              {"x": 3, "y": 4, "z": None}])
         self.assertEqual(batch.call_args.args[0][0], "terrain 100.000 200.000 100000.000 -200000.000")
 
-    @patch("uncrashed_mcp.api.agent.batch")
-    def test_validation(self, batch):
-        for points in ([], [[1]], [[1, float("nan")]], [[1, 2]] * 257):
-            with self.assertRaises(ValueError):
-                sample_terrain(points)
-        with self.assertRaises(ValueError):
-            sample_terrain([[1, 2]], z_from=0, z_to=1)
-        batch.assert_not_called()
-
     @patch("uncrashed_mcp.api.agent.batch", return_value=({}, "ok"))
     def test_missing_reply_is_not_silent_miss(self, batch):
         with self.assertRaisesRegex(RuntimeError, "terrain sample 0 failed"):

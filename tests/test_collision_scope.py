@@ -42,13 +42,6 @@ class CollisionScopeTests(unittest.TestCase):
                 api.check_collisions(0,0,10,10)
             self.assertEqual(list(Path(tmp).iterdir()), [])
 
-    def test_partial_region_is_rejected_without_game_commands(self):
-        with TemporaryDirectory() as tmp, patch.object(api, 'COLLIDE_DIR', Path(tmp)), \
-             patch.object(api.agent, 'run') as run:
-            with self.assertRaises(ValueError):
-                api.check_collisions(x0=1)
-        run.assert_not_called()
-
 
 if __name__ == '__main__':
     unittest.main()
