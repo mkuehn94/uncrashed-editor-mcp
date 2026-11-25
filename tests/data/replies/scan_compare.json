@@ -1,0 +1,201 @@
+{
+ "survey": "1e2d136bdbf7",
+ "frame": "map",
+ "source": "scene_snapshot /home/user/project/scan-plans/fake.json.gz",
+ "scan_objects": 1076,
+ "placed_in_scope": 845,
+ "counts": {
+  "matched": 752,
+  "offset": 46,
+  "height_off": 42,
+  "missing": 236
+ },
+ "unmatched_placed_count": 5,
+ "by_class": [
+  {
+   "cls": "tree",
+   "scan": 729,
+   "matched": 616,
+   "offset": 37,
+   "height_off": 33,
+   "missing": 43
+  },
+  {
+   "cls": "building",
+   "scan": 183,
+   "matched": 0,
+   "offset": 0,
+   "height_off": 0,
+   "missing": 183
+  },
+  {
+   "cls": "car",
+   "scan": 162,
+   "matched": 134,
+   "offset": 9,
+   "height_off": 9,
+   "missing": 10
+  },
+  {
+   "cls": "truck",
+   "scan": 2,
+   "matched": 2,
+   "offset": 0,
+   "height_off": 0,
+   "missing": 0
+  }
+ ],
+ "problems": [
+  {
+   "id": 0,
+   "cls": "building",
+   "conf": 0.95,
+   "x": -32.88,
+   "y": -241.5,
+   "status": "missing",
+   "row": null,
+   "actor": null,
+   "by": null,
+   "offset_m": null,
+   "height_off_m": null,
+   "base_off_m": null,
+   "yaw_off_deg": null
+  },
+  {
+   "id": 1,
+   "cls": "building",
+   "conf": 0.95,
+   "x": -28.37,
+   "y": -243.11,
+   "status": "missing",
+   "row": null,
+   "actor": null,
+   "by": null,
+   "offset_m": null,
+   "height_off_m": null,
+   "base_off_m": null,
+   "yaw_off_deg": null
+  },
+  {
+   "id": 4,
+   "cls": "building",
+   "conf": 0.95,
+   "x": 52.75,
+   "y": -229.38,
+   "status": "missing",
+   "row": null,
+   "actor": null,
+   "by": null,
+   "offset_m": null,
+   "height_off_m": null,
+   "base_off_m": null,
+   "yaw_off_deg": null
+  },
+  {
+   "id": 8,
+   "cls": "building",
+   "conf": 0.95,
+   "x": 118.13,
+   "y": -222.57,
+   "status": "missing",
+   "row": null,
+   "actor": null,
+   "by": null,
+   "offset_m": null,
+   "height_off_m": null,
+   "base_off_m": null,
+   "yaw_off_deg": null
+  },
+  {
+   "id": 12,
+   "cls": "building",
+   "conf": 0.95,
+   "x": -152.62,
+   "y": -197.29,
+   "status": "missing",
+   "row": null,
+   "actor": null,
+   "by": null,
+   "offset_m": null,
+   "height_off_m": null,
+   "base_off_m": null,
+   "yaw_off_deg": null
+  }
+ ],
+ "unmatched_placed": [
+  {
+   "actor": "9000",
+   "row": "NewRow_1",
+   "name": "container green",
+   "group": "stray",
+   "x": 80.0,
+   "y": -190.0,
+   "top_z": 6.01,
+   "scan_surface": "grass",
+   "scan_height_m": 0.1,
+   "scan_object": null,
+   "base_above_scan_ground_m": -0.7
+  },
+  {
+   "actor": "9001",
+   "row": "NewRow_1",
+   "name": "container green",
+   "group": "stray",
+   "x": 89.0,
+   "y": -190.0,
+   "top_z": 6.01,
+   "scan_surface": "paved",
+   "scan_height_m": 0.01,
+   "scan_object": null,
+   "base_above_scan_ground_m": -0.46
+  },
+  {
+   "actor": "9002",
+   "row": "NewRow_1",
+   "name": "container green",
+   "group": "stray",
+   "x": 98.0,
+   "y": -190.0,
+   "top_z": 6.01,
+   "scan_surface": "bare",
+   "scan_height_m": 0.0,
+   "scan_object": null,
+   "base_above_scan_ground_m": -0.43
+  },
+  {
+   "actor": "9003",
+   "row": "NewRow_1",
+   "name": "container green",
+   "group": "stray",
+   "x": 107.0,
+   "y": -190.0,
+   "top_z": 6.01,
+   "scan_surface": "vegetation",
+   "scan_height_m": 8.49,
+   "scan_object": "tree 294",
+   "base_above_scan_ground_m": -0.43
+  },
+  {
+   "actor": "9004",
+   "row": "NewRow_1",
+   "name": "container green",
+   "group": "stray",
+   "x": 116.0,
+   "y": -190.0,
+   "top_z": 6.01,
+   "scan_surface": "bare",
+   "scan_height_m": 0.03,
+   "scan_object": null,
+   "base_above_scan_ground_m": -0.44
+  }
+ ],
+ "truncated": true,
+ "report_json": "/home/user/.cache/uncrashed-mcp/scan/1e2d136bdbf7/compare.json",
+ "units": "metres",
+ "meaning": "pairs by group scan.<class>.<id> first, then the nearest placed object of a fitting kind; offset_m: box centres; height_off_m: placed top minus scan top; base_off_m: placed bottom minus scan ground (game ground may differ); yaw_off_deg: long axes (mod 180)",
+ "limitations": [
+  "Read-only bookkeeping of boxes: it does not show that a stand-in looks right; look with capture_view next to scan_view.",
+  "Placed boxes use catalogue bounds turned by yaw only (pitch / roll ignored); rows not in the catalogue count as points at their pivot.",
+  "Surface tiles and decals are not compared; the scan DSM sees only the highest surface."
+ ]
+}

@@ -1,0 +1,99 @@
+{
+ "survey": "1e2d136bdbf7",
+ "frame": "map",
+ "file": "/home/user/project/scan-plans/fx.txt",
+ "json": "/home/user/project/scan-plans/fx.json",
+ "spawn_lines": 43,
+ "commands": 86,
+ "classes": [
+  {
+   "cls": "tree",
+   "selected": 35,
+   "planned": 28,
+   "building_hints": 0,
+   "skipped": 7,
+   "rows": [
+    "NewRow_168 x13",
+    "NewRow_34 x4",
+    "NewRow_169 x3",
+    "NewRow_179 x2"
+   ]
+  },
+  {
+   "cls": "car",
+   "selected": 14,
+   "planned": 14,
+   "building_hints": 0,
+   "skipped": 0,
+   "rows": [
+    "NewRow_257 x7",
+    "NewRow_103 x6",
+    "NewRow_775 x1"
+   ]
+  },
+  {
+   "cls": "building",
+   "selected": 2,
+   "planned": 0,
+   "building_hints": 2,
+   "skipped": 0,
+   "rows": []
+  },
+  {
+   "cls": "truck",
+   "selected": 1,
+   "planned": 1,
+   "building_hints": 0,
+   "skipped": 0,
+   "rows": [
+    "NewRow_103 x1"
+   ]
+  }
+ ],
+ "skipped_count": 7,
+ "skipped": [
+  {
+   "id": 250,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  },
+  {
+   "id": 258,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  },
+  {
+   "id": 287,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  },
+  {
+   "id": 297,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  },
+  {
+   "id": 306,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  },
+  {
+   "id": 310,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  },
+  {
+   "id": 316,
+   "cls": "tree",
+   "reason": "slender crown (taller than 3 x its crown, under 4 m wide): on the example scan these were roof greenery or building edges, not trees; check with scan_view"
+  }
+ ],
+ "executed": false,
+ "next": "read the file, then agent_batch with it (./uc batch FILE); compare capture_view with scan_view, then scan_compare",
+ "limitations": [
+  "A stand-in is the nearest catalogue shape, not the real object: look at it next to scan_view.",
+  "Vehicle heading is known only up to 180 degrees (front / back look alike from above).",
+  "z: spawn at the scan ground + lift_m, then drop; where the game surface is far from the scan ground (other base, placement datum) drop rests the object on whatever the game has there.",
+  "Buildings are not built: hints carry footprint, heights, roof, walls and window rows for a builder; a catalogue stand-in is only a block-out."
+ ]
+}

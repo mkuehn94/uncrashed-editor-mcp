@@ -1,6 +1,6 @@
 # Command line
 
-`./uc` drives the same 41 operations as the MCP server from a shell. Agents load nothing up front: `./uc help` lists the commands, `./uc help <command>` gives parameters and examples, `./uc help guide` carries the workflow and cautions. Replies are compact text instead of JSON, bulk input comes from files, images land on disk.
+`./uc` drives the same 65 operations as the MCP server from a shell. Agents load nothing up front: `./uc help` lists the commands, `./uc help <command>` gives parameters and examples, `./uc help guide` carries the workflow and cautions, `./uc help scan` the 3D-scan workflow ([scan.md](scan.md)). Replies are compact text instead of JSON, bulk input comes from files, images land on disk.
 
 ## Install
 
@@ -20,7 +20,7 @@
 - Command names take `-` or `_` (`list-gates`), plus aliases: `exec`, `batch`, `log`, `unload`. A typo exits 2 with the nearest name.
 - Positionals bind to the first parameters in order (`./uc move_camera 10 20 30 90`). Everything else is `--name value`; names are exact, no abbreviations. Surplus positionals and `name=value` tokens are usage errors.
 - `-5`, `-.5` and `-` are values, not options. `--name=value` is the way to pass a value starting with `--`; `--` ends option parsing.
-- Booleans: `--flag`, `--no-flag`, `--flag=false`. Edits with a `preview` parameter (marked `~` in `./uc help`) preview by default; `--apply` is `--no-preview`. `exec`, `batch`, `load_live`, `save_live` and `unload` (`!`) have no preview: they act at once. `--apply=0`, `--apply no` and the like are refused. After an `exec` command word every `--word` needs a leading `--` (`./uc exec -- console r.foo --bar`).
+- Booleans: `--flag`, `--no-flag`, `--flag=false`. Edits with a `preview` parameter (marked `~` in `./uc help`) preview by default; `--apply` is `--no-preview`. `exec`, `batch`, `load_live`, `save_live`, `unload` and the `reference_*` changes (`!`) have no preview: they act at once. `--apply=0`, `--apply no` and the like are refused. After an `exec` command word every `--word` needs a leading `--` (`./uc exec -- console r.foo --bar`).
 - Lists are one comma-separated token (`--delta 0,40,0`, `--actors 1A2B,3C4D`), a quoted JSON list, `@file` (whitespace, comma or newline separated) or `@-` for stdin. Repeating the option appends. `--rows=[]` is the explicit empty list.
 - Points are `x,y[,z]` tokens: `./uc sample_terrain 10,20 12.5,20`; `--points @file` reads one per line. `inspect_site` takes two `x,y,z` tokens.
 - Maps and JSON values: `--roles base=foundation,frame=structure`, or one JSON token in single quotes, or `@file`.
@@ -90,7 +90,7 @@ One command per line, centimetres; empty lines and `#` lines are skipped. Each c
 
 ## Long commands, timeouts, retries
 
-`check_collisions` (about a minute per 27,000 objects), `load_live`, large batches, `consolidate_scenery --apply`, `check_route_clearance` and `check_opening` can outlast a shell tool's default timeout: raise it or run in the background. `--timeout` (seconds) sets how long the CLI waits for the agent's reply (`exec` default 30). `batch` waits max(60 s, 0.02 s per command) unless `--timeout` is given. A timeout means the command was sent and may still run. Never re-send it: look first. A batch that fails after sending ends `batch state UNKNOWN` (same rule). Follow-up live commands wait for the running job (note `agent is finishing an earlier job`) and give up with `agent busy: an earlier job is still running; nothing was sent` plus a hint to read `./uc log`.
+`check_collisions` (about a minute per 27,000 objects), `load_live`, large batches, `consolidate_scenery --apply`, `check_route_clearance`, `check_opening` and `reference_load` can outlast a shell tool's default timeout: raise it or run in the background. `--timeout` (seconds) sets how long the CLI waits for the agent's reply (`exec` default 30). `batch` waits max(60 s, 0.02 s per command) unless `--timeout` is given. A timeout means the command was sent and may still run. Never re-send it: look first. A batch that fails after sending ends `batch state UNKNOWN` (same rule). Follow-up live commands wait for the running job (note `agent is finishing an earlier job`) and give up with `agent busy: an earlier job is still running; nothing was sent` plus a hint to read `./uc log`.
 
 ```bash
 ./uc last              # the last finished agent reply; while a job runs it is the one before it (stderr note)
@@ -137,7 +137,7 @@ Same operations, parameters and defaults. This table is generated from the regis
 | `camera_pose` | `./uc camera_pose` | game |
 | `move_camera` | `./uc move_camera X:num Y:num Z:num YAW:num [PITCH:num=-20] [--no-hold]` | game |
 | `release_camera` | `./uc release_camera` | game |
-| `capture_view` | `./uc capture_view [X:num] [Y:num] [Z:num] [YAW:num] [PITCH:num] [--backend str=engine] [--foreground] [--width int=800] [--height int=450] [--out str]` | game |
+| `capture_view` | `./uc capture_view [X:num] [Y:num] [Z:num] [YAW:num] [PITCH:num] [--backend str=engine] [--foreground] [--width int=800] [--height int=450] [--out str] [--reference] [--reference_only]` | game |
 | `load_live` | `./uc load_live NAME:str [--no-move_camera]` | game; changes at once |
 | `save_live` | `./uc save_live [NAME:str] [--display_name str]` | game; changes at once |
 | `agent_exec` | `./uc agent_exec [--max_lines int=40] [--timeout num=30] COMMAND...` | game; changes at once |
@@ -165,10 +165,34 @@ Same operations, parameters and defaults. This table is generated from the regis
 | `check_performance` | `./uc check_performance [NAME:str] [--region x0,y0,x1,y1] [--budgets k=v,..\|json] [--measure] [--poses json] [--duration num=1.5] [--cell num=50] [--top int=10]` | saved map name, else game |
 | `consolidate_scenery` | `./uc consolidate_scenery [NAME:str] [--region x0,y0,x1,y1] [--rows a,b,..] [--apply] [--tolerance num=0.02] [--max_size num=64] [--limit int=20]` | saved map name, else game; changes with --apply |
 | `check_route_clearance` | `./uc check_route_clearance [SOURCE:str=live] [--points x,y[,z]\|json] [--profile str=5inch] [--margin_m num] [--spacing_m num=1] [--dims_m n,n,..] [--kind str] [--channel str=Pawn] [--probe_m num=10] [--directions int=16] [--closed\|--no-closed] [--laps int] [--no-align_gates] [--ignore_start_m num=0] [--max_issues int=20]` | game |
-| `capture_sheet` | `./uc capture_sheet POSES:str [--width int=480] [--height int=270] [--columns int=0] [--out str]` | game |
+| `capture_sheet` | `./uc capture_sheet POSES:str [--width int=480] [--height int=270] [--columns int=0] [--out str] [--reference] [--reference_only]` | game |
 | `scene_snapshot` | `./uc scene_snapshot [--group str] [--box n,n,..] [--name str]` | game |
 | `scene_diff` | `./uc scene_diff SNAPSHOT:str [--group str] [--box n,n,..] [--position_m num=0.01] [--rotation_deg num=0.1] [--scale num=0.001] [--gate_position_m num=0.01] [--examples int=10]` | game |
 | `check_opening` | `./uc check_opening PATH:x,y[,z] ... [--profile str=5inch] [--margin_m num] [--channel str=Pawn] [--spacing_m num=0.25] [--dims_m n,n,..] [--near_m num=5] [--top int=10]` | game |
+| `reference_load` | `./uc reference_load OBJ:str [--at n,n,..] [--map_origin n,n,..] [--yaw num=0] [--center n,n,..] [--radius_m num=0] [--datum_m str=auto] [--near_m num=160] [--far_scale int=2] [--axes str] [--replace] [--min_free_gb num=3]` | game; changes at once |
+| `reference_status` | `./uc reference_status` | game |
+| `reference_clear` | `./uc reference_clear` | game; changes at once |
+| `reference_visibility` | `./uc reference_visibility [--no-hidden]` | game; changes at once |
+| `scan_survey` | `./uc scan_survey OBJ:str [--center n,n,..] [--radius_m num=0] [--res_m num=0.25] [--axes str] [--osm\|--no-osm] [--vision\|--no-vision] [--no-facades] [--refresh] [--providers str=auto] [--street_views\|--no-street_views]` | nothing |
+| `scan_status` | `./uc scan_status [--survey str] [--drop_ram str]` | nothing |
+| `scan_place` | `./uc scan_place [--at n,n,..] [--yaw num=0] [--datum_m num] [--from_reference] [--clear] [--survey str]` | nothing (`--from_reference`: game); changes at once |
+| `scan_height` | `./uc scan_height POINTS:x,y[,z] ... [--agl] [--frame str=auto] [--survey str]` | nothing |
+| `scan_profile` | `./uc scan_profile START:n,n,.. END:n,n,.. [--step_m num=1] [--agl] [--frame str=auto] [--survey str]` | nothing |
+| `scan_at` | `./uc scan_at POINT:n,n,.. [--radius_m num=10] [--limit int=15] [--frame str=auto] [--survey str]` | nothing |
+| `scan_objects` | `./uc scan_objects [--classes a,b,..] [--box n,n,..] [--near n,n,..] [--radius_m num=50] [--min_conf num=0] [--limit int=30] [--sort str] [--nearest int=0] [--frame str=auto] [--survey str]` | nothing |
+| `scan_ground` | `./uc scan_ground BOX:n,n,.. [--min_area_m2 num=20] [--limit int=20] [--simplify_m num=0.5] [--frame str=auto] [--survey str]` | nothing |
+| `scan_building` | `./uc scan_building BUILDING:int [--min_facade_m num=2] [--no-survey_facades] [--frame str=auto] [--survey str]` | nothing |
+| `scan_facade` | `./uc scan_facade BUILDING:int [--side int] [--no-labels] [--frame str=auto] [--survey str]` | nothing |
+| `scan_free` | `./uc scan_free POINTS:x,y[,z] ... [--radius_m num=0] [--margin_m num=0.5] [--agl] [--frame str=auto] [--survey str]` | nothing |
+| `scan_view` | `./uc scan_view [--box n,n,..] [--center n,n,..] [--size_m num=60] [--layer str=ortho] [--no-labels] [--classes a,b,..] [--px int=900] [--frame str=auto] [--survey str] [--compare str] [--deviations int=25]` | nothing |
+| `scan_sheet` | `./uc scan_sheet [POINTS:x,y[,z] ...] [--objects a,b,..] [--classes a,b,..] [--box n,n,..] [--min_conf num=0] [--limit int=16] [--size_m num=0] [--layer str=ortho] [--no-labels] [--px int=360] [--columns int=0] [--frame str=auto] [--survey str]` | nothing |
+| `scan_match` | `./uc scan_match [OBJECT_ID:int] [--classes a,b,..] [--box n,n,..] [--min_conf num=0.5] [--top int=3] [--limit int=30] [--rows a,b,..] [--include_hidden] [--frame str=auto] [--survey str]` | nothing |
+| `scan_plan` | `./uc scan_plan [--box n,n,..] [--classes a,b,..] [--min_conf num=0.6] [--out str] [--buildings str=hint] [--lift_m num=0.5] [--limit int=2000] [--include_hidden] [--ground_cell_m num=2] [--ground_tol_m num=0.03] [--ground_yaw num=0] [--survey str]` | nothing; changes at once (writes the plan files) |
+| `scan_compare` | `./uc scan_compare [SNAPSHOT:str] [--box n,n,..] [--group str] [--classes a,b,..] [--min_conf num=0.5] [--position_m num=1] [--height_m num=1] [--yaw_deg num=10] [--size_tol num=0.15] [--cell_m num=5] [--top int=20] [--iou num=0.6] [--survey str]` | game (or a scene_snapshot file) |
+| `capture_topdown` | `./uc capture_topdown [--box n,n,..] [--center n,n,..] [--size_m num=60] [--px int=900] [--reference str=hide] [--projection str=auto] [--ground_z num] [--top_z num] [--survey str]` | game |
+| `asset_profile` | `./uc asset_profile ROWS:str ... [--refresh]` | nothing |
+| `scan_sources` | `./uc scan_sources [--latlon n,n,..] [--radius_m num=150] [--survey str]` | nothing |
+| `scan_grid` | `./uc scan_grid BOX:n,n,.. [--res_m num=1] [--layers a,b,..] [--out str] [--frame str=auto] [--survey str]` | nothing |
 
 `mcp` tool names such as `agent_exec` still work as CLI command names. The MCP server (`./uc mcp`, `uncrashed-mcp`, `python -m uncrashed_mcp`) is a thin adapter over the same registry.
 

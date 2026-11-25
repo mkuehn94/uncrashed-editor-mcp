@@ -1,0 +1,45 @@
+{
+ "survey": "1e2d136bdbf7",
+ "frame": "map",
+ "image": "/dev/shm/uncrashed-scan/1e2d136bdbf7/views/sheet-111414-900.png",
+ "layer": "ortho",
+ "tiles": 4,
+ "selected": 14,
+ "truncated": true,
+ "crops": [
+  {
+   "n": 1,
+   "label": "car 997 c0.95 4.61x2.25m",
+   "object": 997,
+   "x": 86.98,
+   "y": -215.84,
+   "size_m": 14.0
+  },
+  {
+   "n": 2,
+   "label": "car 1000 c0.95 4.49x2.01m",
+   "object": 1000,
+   "x": 121.36,
+   "y": -213.53,
+   "size_m": 14.0
+  },
+  {
+   "n": 3,
+   "label": "car 1015 c0.95 4.68x2.31m",
+   "object": 1015,
+   "x": 132.26,
+   "y": -188.56,
+   "size_m": 14.0
+  },
+  {
+   "n": 4,
+   "label": "car 1022 c0.95 4.79x2.12m",
+   "object": 1022,
+   "x": 123.43,
+   "y": -175.01,
+   "size_m": 14.4
+  }
+ ],
+ "units": "metres",
+ "note": "image in RAM (/dev/shm) only: look at it locally, never upload or commit it"
+}

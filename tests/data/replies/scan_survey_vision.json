@@ -1,0 +1,139 @@
+{
+ "survey": "f0e1b69392c2",
+ "reused": false,
+ "obj": "/tmp/uncrashed-scan-example/src/scene.obj",
+ "region_m": {
+  "center": [
+   0.0,
+   0.0
+  ],
+  "radius": 30.0,
+  "res": 0.25,
+  "cells": "240x240"
+ },
+ "placement": null,
+ "objects_total": 7,
+ "classes": [
+  {
+   "cls": "building",
+   "count": 2,
+   "high": 2,
+   "mid": 0,
+   "low": 0,
+   "osm": 0,
+   "vision": 0
+  },
+  {
+   "cls": "car",
+   "count": 2,
+   "high": 1,
+   "mid": 1,
+   "low": 0,
+   "osm": 0,
+   "vision": 2
+  },
+  {
+   "cls": "tree",
+   "count": 1,
+   "high": 1,
+   "mid": 0,
+   "low": 0,
+   "osm": 0,
+   "vision": 0
+  },
+  {
+   "cls": "small_object",
+   "count": 1,
+   "high": 0,
+   "mid": 0,
+   "low": 1,
+   "osm": 0,
+   "vision": 1
+  },
+  {
+   "cls": "pool",
+   "count": 1,
+   "high": 1,
+   "mid": 0,
+   "low": 0,
+   "osm": 0,
+   "vision": 1
+  }
+ ],
+ "class_share": {
+  "paved": 0.913,
+  "grass": 0.01,
+  "bare": 0.001,
+  "other_ground": 0.01,
+  "building": 0.049,
+  "vegetation": 0.011,
+  "low_object": 0.005
+ },
+ "timings": {
+  "index_s": 0.0,
+  "raster_s": 0.0,
+  "survey_s": 0.0,
+  "fill_s": 0.0,
+  "dtm_s": 0.01,
+  "features_s": 0.01,
+  "classify_s": 0.01,
+  "buildings_s": 0.01,
+  "trees_s": 0.01,
+  "cars_s": 0.0,
+  "total_s": 0.1
+ },
+ "vision": {
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "models": {
+   "obb": "yolo11l-obb.pt",
+   "dino": "grounding-dino-base",
+   "sam": "sam2.1_b.pt"
+  },
+  "timings": {
+   "prepare_s": 0.04,
+   "worker_s": 0.0,
+   "fuse_s": 0.0,
+   "total_s": 0.05
+  },
+  "worker_timings": {
+   "obb_s": 5.1,
+   "dino_s": 75.48,
+   "sam_boxes": 13,
+   "sam_s": 1.43,
+   "total_s": 83.07
+  },
+  "vram_peak_gb": 12.85,
+  "aerial": {
+   "tiles": 1,
+   "coarse_tiles": 1,
+   "detections": 4,
+   "vehicles_detected": 2,
+   "cars_confirmed": 1,
+   "cars_rejected": 1,
+   "cars_kept_unconfirmed": 0,
+   "vehicles_added": 1,
+   "vehicles_dropped_on_roofs": 1,
+   "other_added": {
+    "pool": 1
+   },
+   "trees_confirmed": 0
+  },
+  "facades": {
+   "walls": 8,
+   "surveyed": 6,
+   "buildings": 2,
+   "windows": 20,
+   "skipped_party_walls": 0
+  }
+ },
+ "skipped": [
+  "osm: disabled (--no-osm)"
+ ],
+ "next": "scan_place (map frame), then scan_view / scan_objects / scan_height; scan_building ID, scan_facade ID",
+ "limitations": [
+  "Geometry rules plus learned detectors (YOLO11-OBB, Grounding DINO, SAM 2) on the scan texture: conf combines both, models lists the detector scores; neither sees vehicles under roofs or dense crowns.",
+  "The DSM sees only the highest surface: passages under bridges, arches or canopies read as solid.",
+  "Footprints follow roof outlines (eaves), not walls; heights are above the filtered ground model.",
+  "Facade windows / doors are detections on blurred photogrammetry texture: check walls with scan_facade."
+ ]
+}

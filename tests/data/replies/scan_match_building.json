@@ -1,0 +1,92 @@
+{
+ "survey": "1e2d136bdbf7",
+ "frame": "map",
+ "object": {
+  "id": 4,
+  "cls": "building",
+  "conf": 0.95,
+  "x": 52.75,
+  "y": -229.38,
+  "ground_z": 3.55,
+  "height_m": 22.77,
+  "length_m": 17.25,
+  "width_m": 15.5,
+  "yaw_deg": 90.0,
+  "src": "mesh+osm",
+  "roof": "hipped",
+  "ridge_m": 23.24
+ },
+ "rows_considered": 31,
+ "candidates": [
+  {
+   "row": "NewRow_795",
+   "name": "Building D",
+   "score": 0.337,
+   "fit_err_pct": 0.0,
+   "shape_err_pct": 17.5,
+   "raw_err_pct": 27.2,
+   "scale": [
+    1.01,
+    0.848,
+    0.682
+   ],
+   "yaw_deg": 0.0,
+   "size_m": [
+    15.5,
+    17.25,
+    23.24
+   ],
+   "roof": "flat",
+   "notes": "roof flat"
+  },
+  {
+   "row": "NewRow_794",
+   "name": "Building B",
+   "score": 0.312,
+   "fit_err_pct": 0.0,
+   "shape_err_pct": 20.3,
+   "raw_err_pct": 31.5,
+   "scale": [
+    0.762,
+    0.681,
+    1.053
+   ],
+   "yaw_deg": 0.0,
+   "size_m": [
+    15.5,
+    17.25,
+    23.24
+   ],
+   "roof": "flat",
+   "notes": "roof flat"
+  },
+  {
+   "row": "NewRow_797",
+   "name": "Building",
+   "score": 0.214,
+   "fit_err_pct": 1.2,
+   "shape_err_pct": 29.0,
+   "raw_err_pct": 76.9,
+   "scale": [
+    0.513,
+    0.5,
+    0.86
+   ],
+   "yaw_deg": 0.0,
+   "size_m": [
+    15.5,
+    17.6,
+    23.24
+   ],
+   "roof": "flat",
+   "notes": "roof flat"
+  }
+ ],
+ "units": "metres",
+ "meaning": "score 0..1 (size fit after the suggested scale, proportions, roof); fit_err_pct: size error left after scale, shape_err_pct: proportion mismatch (at one uniform scale), raw_err_pct: size error at scale 1; scale is x,y,z of the row; yaw_deg: spawn yaw that lays the row on the object (trees: any); scan_plan writes the spawn line",
+ "limitations": [
+  "Matches compare box sizes (length, width, height), aspect and roof shape only; the catalogue has no colours except colour words in a few row or material names, so colour rarely decides.",
+  "A stand-in is the nearest catalogue shape, not the real object: look at it next to scan_view.",
+  "Vehicle heading is known only up to 180 degrees (front / back look alike from above)."
+ ]
+}

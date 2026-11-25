@@ -185,6 +185,34 @@ def verdict(first, complete, counts, unverified_objects, near_miss) -> str:
     return f'no blocking sweep hit for the craft body; NOT proven clear: {tail}; geometry only, not a flight test'
 
 
+PAGE = 500          # collision_state answers at most this many objects per call
+MAX_SPLIT = 8       # box halvings when one box holds more than a page (2^8 boxes at most)
+
+
+def _nearby(lo, hi, depth: int = 0) -> tuple[list[dict], int, int]:
+    """Collision state of every placed object whose pivot lies in the box lo..hi, paged: a box holding more than
+    PAGE objects is halved along its longer horizontal side until each half fits. Returns (objects, matched,
+    calls); matched > len(objects) only when MAX_SPLIT halvings were not enough."""
+    state = scenery.collision_state(box_min=list(lo), box_max=list(hi), top=PAGE, components=False)
+    objs = list(state.get('objects', []))
+    matched = int(state.get('matched', len(objs)))
+    if matched <= len(objs) or depth >= MAX_SPLIT:
+        return objs, matched, 1
+    k = 0 if hi[0] - lo[0] >= hi[1] - lo[1] else 1
+    mid = (lo[k] + hi[k]) / 2
+    hi_a, lo_b = list(hi), list(lo)
+    hi_a[k], lo_b[k] = mid, mid
+    out: dict[str, dict] = {}
+    total, calls = 0, 1
+    for a, b in ((lo, hi_a), (lo_b, hi)):
+        o, m, c = _nearby(a, b, depth + 1)
+        calls += c
+        total += m - len(o)
+        for x in o:
+            out.setdefault(x['actor'], x)
+    return list(out.values()), len(out) + total, calls
+
+
 def check_opening(path, profile='5inch', margin_m=None, channel='Pawn', spacing_m=0.25, dims_m=None,
                   near_m=5.0, top=10, catalog=None) -> dict:
     controls = validate_path(path)
@@ -217,21 +245,27 @@ def check_opening(path, profile='5inch', margin_m=None, channel='Pawn', spacing_
         lo = [min(s['p'][k] for s in samples) - near_m for k in range(3)]
         hi = [max(s['p'][k] for s in samples) + near_m for k in range(3)]
         notes = []
-        state = scenery.collision_state(box_min=lo, box_max=hi, top=500, components=False)
-        nearby = list(state.get('objects', []))
-        capped = state.get('matched', 0) > len(nearby)
+        nearby, matched, pages = _nearby(lo, hi)
+        capped = matched > len(nearby)
         known = {o['actor'] for o in nearby}
         traced = {a for a, v in parsed['actors'].items() if v.get('row')} - known
         if capped:
-            notes.append(f'{state["matched"]} placed objects near the path; only 500 were checked for overrides')
+            notes.append(f'{matched} placed objects near the path; only {len(nearby)} were checked for overrides '
+                         f'({pages} box pages, split limit reached)')
+        elif pages > 1:
+            notes.append(f'{len(nearby)} placed objects near the path, looked up in {pages} box pages')
         unchecked = set()
-        if len(traced) > min(500, scenery.MAX_LIST):
+        if len(traced) > scenery.MAX_LIST:
             unchecked = traced
             notes.append(f'{len(traced)} hit object(s) outside the box: too many to look up overrides; '
                          'their hits are unverified')
         elif traced:
             try:
-                extra = scenery.collision_state(actors=sorted(traced), top=500, components=False)
+                extra = {'objects': []}
+                names = sorted(traced)
+                for k in range(0, len(names), PAGE):     # by handle, one page of PAGE at a time
+                    extra['objects'] += scenery.collision_state(actors=names[k:k + PAGE], top=PAGE,
+                                                                components=False).get('objects', [])
                 nearby += extra.get('objects', [])
                 unchecked = traced - {o['actor'] for o in extra.get('objects', [])}
                 if unchecked:

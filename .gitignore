@@ -64,6 +64,8 @@ native/work/
 
 # Temporary captures and local reports
 shots-now.*
+# scan_plan output: derived from personal-use scans, keep local
+scan-plans/
 
 # Design caches, backups, and abandoned save copies
 designs/**/__pycache__/
@@ -116,3 +118,5 @@ native/try_spawn.c
 
 # Leftover stub
 src/uncrashed_mcp/live_spawn.py
+.venv-vision/
+native/ucmesh

@@ -22,8 +22,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
-from . import agent, assemblies, clearance, collide, consolidate, environment, groups, managed, opening, performance, scenery, sheet, snapshots
-from .catalog import load_catalog
+from . import (agent, assemblies, clearance, collide, consolidate, environment, groups, managed, opening, performance,
+               reference, scenery, sheet, snapshots)
+from .catalog import hay_of, load_catalog, word_match
 from .mapfile import list_user_maps, load_map, sanitize_name
 from .paths import game_running, maps_dir, steam_id, workshop_dir
 
@@ -147,9 +148,8 @@ Asset, SpawnTrackAsset, SaveMap).
 BASICS
 Help: `./uc help` (commands: ! acts at once, ~ previews unless --apply), `./uc help <command>`,
 `./uc help verbs` (agent commands), `./uc help output` (reply format). Commands use metres and degrees
-(Z up, yaw 0 = +X, 90 = +Y); agent commands (exec = agent_exec, batch = agent_batch) use centimetres.
-Replies are short: ask for more (--max_lines, --top, --limit) only when
-needed. --json prints JSON, --pick a,b.c keeps fields.
+(Z up, yaw 0 = +X, 90 = +Y); agent commands (exec = agent_exec, batch = agent_batch) use cm.
+Replies are short: ask more (--max_lines, --top, --limit). --json prints JSON, --pick a,b.c keeps fields.
 Exit codes: 0 ok; 1 raised (a live change may be partly applied); 2 usage error (nothing ran); 3 ran but
 reported failures. Every failure prints one stderr line `error: ...`; pipes need `set -o pipefail`.
 No game needed: status, list_gates, list_maps, inspect_map, search_assets, get_assets,
@@ -159,27 +159,27 @@ BUILD
 search_assets / get_assets (rows) -> write commands -> batch -> capture_view -> fix -> save_live.
 `./uc exec mapinfo` first: only BaseBoard is a flat grid at z=0. On landscape bases sample_terrain measures
 bare ground through trees and structures (not platform or building roofs): sample the whole footprint
-before choosing a foundation elevation. Before building, inspect_site lists the bare-ground grid,
-recognised flora and placed objects; GPU-only landscape grass is reported unavailable.
-spawn takes the pivot; get_assets gives origin_cm / extent_cm to put the bottom of a mesh on the ground.
+before choosing a foundation elevation. inspect_site lists bare ground, known flora and placed
+objects; GPU-only landscape grass is reported unavailable.
+spawn takes the pivot; get_assets origin_cm / extent_cm locate a mesh's bottom.
 Batch: generate commands with a script kept in the project (not /tmp), then `./uc batch plan.txt` or
-`python3 plan.py | ./uc batch -`: one game-thread pass, thousands of placements. Failed lines print as
+`python3 plan.py | ./uc batch -`: one game-thread pass. Failed lines print as
 `#<index> L<line> <error> << <command>`; all others ARE applied: resend only the failed ones.
-drop: what stands on something (car on road, crate on shelf) is spawned a little high, then `drop last` on
-the line directly after its spawn (same batch only) rests it exactly on what is under it, using the real
-shapes of both. Stack bottom-up. Ground tiles sit 9 to 13 cm above z=0, so an object spawned at z=0 on a
+drop: what stands on something is spawned a little high, then `drop last` on
+the line directly after its spawn (same batch only) rests it on what is under it (real
+shapes). Stack bottom-up. Ground tiles sit 9 to 13 cm above z=0, so an object spawned at z=0 on a
 tile is sunk in unless dropped.
 Quote an exec command containing * ! # ; | < > & as one argument.
 
 LOOK
-capture_view renders a fresh engine image to a PNG (--out file.png or dir/; view the file yourself): no
-window activation, desktop switch, UI or editor camera movement. x y z [yaw pitch] set an independent pose.
-No silent foreground fallback: only `--backend window --foreground` may focus the game.
-move_camera / camera_pose / release_camera drive the editor camera natively; a hold ends after a 120-second
+capture_view renders a fresh engine image to a PNG (--out file.png or dir/) without
+focus, UI or editor camera movement; x y z [yaw pitch] set an independent pose. Only `--backend window
+--foreground` may focus the game.
+move_camera / camera_pose / release_camera drive the editor camera; holds end after a 120-second
 watchdog. With several agents, use explicit poses; let one agent own the editor camera. capture_sheet
 tiles up to 60 poses in one labelled PNG.
-get_object_bounds: world AABB / optional mesh OBB. get_world_bounds: placed or terrain extents; playable
-bounds are unknown unless explicitly tagged, never inferred from landscape size.
+get_object_bounds: world AABB / mesh OBB. get_world_bounds: placed or terrain extents; playable bounds
+need an explicit tag, never inferred from landscape size.
 
 NO PREVIEW, NO UNDO
 Agent verbs clear, destroy, destroyat, destroybox, replace, base (reopens the editor, clears the scene) and
@@ -188,32 +188,29 @@ auto-saves.
 
 SLOW COMMANDS
 check_collisions (a minute per 27,000 objects), load_live, big batches, `consolidate_scenery --apply`,
-check_route_clearance and check_opening outlast default shell timeouts: raise the timeout or run them in the background.
+check_route_clearance, check_opening and reference_load outlast shell timeouts: raise it or run in the background.
 NEVER re-send a command that timed out, failed or was interrupted: it was sent and may still run or be
 partly applied (only an error containing `nothing was sent` is safe to retry). First check `./uc last`
 (last finished reply), `./uc exec mapinfo`, `./uc edit_history`, `./uc log` (agent_log). stderr `waiting
 for agent lock ...` or `agent is finishing an earlier job` means wait: do not re-send. After a batch error
-without a summary line later commands may time out although they run, until agent_unload (`./uc unload`),
-which restores masks/holds and unloads the DLL.
+without a summary line later commands may time out although they run, until agent_unload (`./uc unload`).
 
 AUDITS (read-only)
-Before saving a big build: check_collisions (placed-object clashes, disconnected groups), then
-check_foundations (unsupported footprint portions) and check_environment (landscape / base-foliage
-conflicts). A clean check_collisions is not full support or environment validation.
+Before saving a big build: check_collisions (clashes, disconnected groups), check_foundations
+(unsupported footprint portions), check_environment (landscape / base-foliage conflicts). A clean check_collisions is not full support or environment validation.
 define_assembly gives groups foundation/structure/cantilever/decoration roles; check_assembly measures
-anchors and reciprocal contact paths, not load capacity. Intentional overhangs need a path, not full
-ground-footprint coverage; connectivity is not engineering certification.
-check_route_clearance sweeps the craft volume along a smooth line through the race gates (live, map:<name>)
-or waypoints (points). Profiles 5inch, tiny_whoop, cinewhoop, 7inch, fixed_wing, car/truck (roads). It
-reports collisions, gate openings too small (probed from the gate centre),
-tight spots, low ceilings or ground and road corridor width, each with a move_camera pose. Overlap-only
+anchors and reciprocal contact paths, not load capacity. Overhangs need a path, not full footprint
+coverage; connectivity is not certification.
+check_route_clearance sweeps the craft along a smooth line through the race gates (live, map:<name>)
+or waypoints (points). Profiles 5inch, tiny_whoop, cinewhoop, 7inch, fixed_wing, car/truck (roads). Reports
+collisions, small gate openings (probed from the gate centre), tight spots, low ceilings, road width, with
+move_camera poses. Overlap-only
 triggers and flythrough objects are not obstacles. The channel defaults to Pawn, unverified for the drone
-(--channel game3). A geometric check of a spline, not a flight test.
-check_opening x,y,z ...: first obstruction by path position; findings are live-collision,
-override-active or unverified (no hit beside unverified objects is not clearance).
-check_performance: offline with a saved map name, or live (--measure samples frame time, optionally at
---poses). Budgets are heuristic UE4 defaults. Live grading counts placed objects only;
-*_base figures are informational.
+(--channel game3). Spline geometry, not a flight test.
+check_opening x,y,z ...: first obstruction on the path (live-collision, override-active or
+unverified; no hit beside unverified objects is not clearance).
+check_performance: saved map name offline, or live (--measure samples frame time, also at
+--poses). Budgets are heuristic; live grading counts placed objects only (*_base: info).
 
 EDITS (~ commands: preview first, then --apply)
 list_groups / edit_group: transform, clone, delete, regroup. undo_edit / edit_history: journaled inverses;
@@ -223,24 +220,32 @@ Read-only scene_snapshot before, scene_diff after: change counts, gate verdicts.
 clearing_zones persists portable intent and masks/restores supported base flora while the DLL is resident;
 the stock game alone ignores sidecars. Partial source coverage needs --allow_partial. Preserve both
 UncrashedMCP sidecars when copying maps.
-consolidate_scenery merges edge-to-edge plain-box triplanar tiles into fewer scaled copies. NAME only previews a saved map file. To apply: save your work, load_live the map,
-run without NAME (preview, then --apply). The largest merge goes first as a canary; a mismatch is undone. Undo with undo_edit per returned transaction, newest first.
+consolidate_scenery merges plain-box triplanar tile runs into fewer scaled copies. NAME only previews a saved map file. To apply: save your work, load_live the map,
+run without NAME (preview, then --apply). The largest merge is a canary; a mismatch is undone. Undo with undo_edit per returned transaction, newest first.
 Non-triplanar rows are never merged; thin them by hand.
 
+REFERENCE (textured OBJ: view only, unsaved, no collision)
+reference_load OBJ --at x,y,z | --map_origin lat,lon [--center e,s --radius_m R]; reference_status,
+reference_visibility [--no-hidden], reference_clear. load_live clears it; captures hide it unless --reference.
+
+SCAN (textured OBJ, no game; `./uc help scan`)
+scan_survey OBJ, scan_place, then scan_height, scan_profile, scan_at, scan_objects, scan_ground,
+scan_building, scan_facade, scan_free, scan_grid, scan_view / scan_sheet (RAM), scan_status, scan_sources.
+Rows: asset_profile, scan_match, scan_plan (a file), scan_compare. capture_topdown + scan_view --compare.
+
 COLLISION
-set_collision (previews unless --apply) sets placed objects picked by --actors, --group, --row or
---box_min/--box_max to flythrough (drone/vehicle channels ignored, no rigid-body contact; traces and audits
-still see them), off (no collision at all), nophysics or on (exact restore); physics_off / physics_on are
+set_collision (previews unless --apply) sets placed objects picked by --actors/--group/--row or
+--box_min/--box_max to flythrough (drone/vehicle channels ignored; traces and audits still see them), off, nophysics or on (exact restore); physics_off / physics_on are
 live-only simulation toggles. Gates only with --force. persist (default; --no-persist = live only) writes
 UncrashedMCP.collision: the resident DLL re-applies it after reloads while the editor is open, the stock
 game without the DLL ignores it. For maps others fly prefer non-colliding catalogue rows
-(`search_assets --collision noncolliding`, noncolliding_alternatives). collision_state reports per-object
-and per-component facts; undo_collision reverts by transaction id. An interrupted `set_collision --apply`
+(`search_assets --collision noncolliding`, noncolliding_alternatives). collision_state reports per-object/component
+facts; undo_collision reverts by transaction id. An interrupted `set_collision --apply`
 can leave a collision_prepared journal that undo_collision refuses: check collision_state, then re-apply
 the wanted mode (on restores the originals). The drone's channel is unverified: run
 `./uc exec collision channels` while flying and pass --channels if it is not Pawn/PhysicsBody/Vehicle.
 Object rules follow catalogue row plus pivot (2 cm): moving an object detaches it from its rule; group
-rules survive moves. Keep UncrashedMCP.collision with the map.
+rules survive moves.
 """.strip()
 
 
@@ -269,9 +274,10 @@ class Op:
     variadic: str | None = None
     rest: str | None = None
     stdin: str | None = None
-    live: str = 'yes'  # 'no' never needs the game | 'mixed' offline with a saved map name | 'yes'
+    live: str = 'yes'  # 'no' never needs the game | 'mixed' offline for some inputs (saved map, file) | 'yes'
     effect: str = 'read'  # 'read' | 'write'
     caution: str = ''
+    needs: str = ''  # CLI help: what a 'mixed' operation needs, when not the usual saved map NAME
     examples: tuple[str, ...] = ()
     check: Callable[[dict], str | None] | None = None  # one-line reason when a returned payload reports a failure
 
@@ -413,6 +419,9 @@ def list_gates() -> dict:
     return {"gates": _catalog().library["gates"]}
 
 
+SEARCH_CAP = 200   # search_assets rows per answer (a longer list is cut with a note, never silently)
+
+
 @op('Find catalogue rows by name, material, tag or id', positional=('query',), live='no',
     examples=('./uc search_assets container --category Big_assets --limit 5',
               './uc search_assets --collision noncolliding --category Decals'))
@@ -437,12 +446,41 @@ def search_assets(
         query=query,
         category=category or None,
         tag=tag or None,
-        limit=len(catalog.assets) if collision else max(1, min(limit, 50)),
+        limit=len(catalog.assets),
         include_hidden=include_hidden,
         include_decals=category.lower() == "decals",
     )
-    rows = scenery.collision_filter(rows, collision)[:max(1, min(limit, 50))]
-    return {"count": len(rows), "assets": [row.public() for row in rows]}
+    rows = scenery.collision_filter(rows, collision)
+    cap = max(1, min(limit, SEARCH_CAP))
+    out = {"count": min(len(rows), cap), "assets": [row.public() for row in rows[:cap]]}
+    tokens = query.lower().split()
+    if tokens and not any(word_match(hay_of(r), tokens) for r in rows):
+        out['word_match'] = False
+        out['word_note'] = (f"no row has '{query}' as a word" + (": these only contain it inside a word" if rows else '')
+                       + '; ' + _related_hint(catalog, tokens))
+    if len(rows) > cap:   # never cut silently: say how many matched and how to see more
+        out.update(total=len(rows), truncated=True,
+                   note=(f"limit {limit} is above the cap of {SEARCH_CAP}: " if limit > SEARCH_CAP else '') +
+                        f"{len(rows) - cap} more rows match; raise limit (up to {SEARCH_CAP}) or narrow the query")
+    elif limit > SEARCH_CAP:
+        out['note'] = f'limit is capped at {SEARCH_CAP}'
+    return out
+
+
+SEARCH_RELATED = {'bin': 'trash', 'dustbin': 'trash', 'garbage': 'trash', 'waste': 'trash', 'litter': 'trash',
+                  'lamp': 'light', 'streetlight': 'light', 'lantern': 'light', 'seat': 'bench', 'post': 'pole',
+                  'auto': 'car', 'lorry': 'truck', 'shrub': 'bush'}
+
+
+def _related_hint(catalog, tokens: list[str]) -> str:
+    """Rows found with a related word ('bin' -> trash), or how to look further."""
+    for t in tokens:
+        alt = SEARCH_RELATED.get(t)
+        if alt:
+            hits = [r for r in catalog.search(alt, limit=200) if word_match(hay_of(r), [alt])][:5]
+            if hits:
+                return f"related ('{alt}'): " + ', '.join(f'{r.id} {r.name}' for r in hits)
+    return 'try a broader word, a --tag or a --category'
 
 
 @op('Full records (bounds, placement rule) for asset ids', positional=('ids',), variadic='ids', live='no',
@@ -516,6 +554,8 @@ def capture_view(
     width: int = 800,
     height: int = 450,
     out: str = '',
+    reference: bool = False,
+    reference_only: bool = False,
 ) -> dict:
     """Fresh offscreen scene image. Default: no focus/desktop switch or editor-camera move.
 
@@ -524,12 +564,18 @@ def capture_view(
     current editor view; occluded/minimized pixels may be stale. Only explicit
     backend='window', foreground=True permits activation/desktop switching.
     At most 4,194,304 pixels. Inspect image yourself, not with another vision model.
+    A loaded textured reference (reference_load) is hidden for the capture unless reference=True;
+    reference_only renders nothing but the reference (a before picture for a pair; agent DLL with capture modes).
     """
     from . import live
     target = _capture_target(out) if out else None
     if target is not None:
         _capture_folder(target[0] if target[1] else target[0].parent)
-    path = live.capture_view(x, y, z, yaw, pitch, backend=backend, foreground=foreground, width=width, height=height)
+    extra = {'include_reference': True} if reference else {}  # reference: keep a loaded textured reference in view
+    if reference_only:
+        extra['reference_only'] = True
+    path = live.capture_view(x, y, z, yaw, pitch, backend=backend, foreground=foreground, width=width, height=height,
+                             **extra)
     sidecar = path.with_suffix('.json')
     meta = json.loads(sidecar.read_text())
     if target is not None:
@@ -560,7 +606,12 @@ def load_live(name: str, move_camera: bool = True) -> dict:
     camera where the map's saved view is.
     """
     _saved_folder(name)  # a mistyped name fails here, before the lock and with the folder that was looked in
-    return agent.load(name, move_camera)
+    with agent.session():
+        dropped = reference.drop_for_scene_change()  # the native reference belongs to the scene being replaced
+        result = agent.load(name, move_camera)
+    if dropped:
+        result = {**result, 'reference': dropped}
+    return result
 
 
 @op("Save the open editor level with the game's own SaveMap", positional=('name',), effect='write',
@@ -1144,7 +1195,8 @@ def _sheet_incomplete(result: dict) -> str | None:
 @op('Capture many poses into one labelled contact sheet PNG', positional=('poses',), check=_sheet_incomplete,
     examples=("./uc capture_sheet 'start 0 -20 6 90 -10; gate1 30 0 8 0 -5' --out sheets/",
               "./uc capture_sheet 'a 0 0 20 0 -60, b 0 0 20 90 -60' --width 320 --height 180 --columns 2"))
-def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int = 0, out: str = '') -> dict:
+def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int = 0, out: str = '',
+                  reference: bool = False, reference_only: bool = False) -> dict:
     """Render up to 60 explicit poses offscreen and tile them into one labelled contact sheet.
 
     poses: items "label x y z yaw pitch" (metres, degrees; label optional) separated by
@@ -1156,10 +1208,14 @@ def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int 
     Writes sheet.png, one PNG per pose and index.json into out (a new or empty directory, created
     at the first frame; a non-empty one is refused; default a new folder under
     /tmp/uncrashed-shots/). Editor helper lines are
-    hidden from captures; gates, gate numbers, the start arch and a race guide are not.
+    hidden from captures; gates, gate numbers, the start arch and a race guide are not. A loaded
+    textured reference (reference_load) is hidden for the sheet and shown again afterwards unless
+    reference=True; reference_only renders nothing but the reference in every frame (the before half of pairs;
+    agent DLL with capture modes).
     A sheet is evidence for looking, not proof of visual quality, clearance or a flyable line.
     """
-    return sheet.capture_sheet(poses, width=width, height=height, columns=columns, out=out)
+    return sheet.capture_sheet(poses, width=width, height=height, columns=columns, out=out, include_reference=reference,
+                               reference_only=reference_only)
 
 
 @op('Stamped snapshot of placed objects and gates (read-only)',
@@ -1222,3 +1278,440 @@ def check_opening(path: list[list[float]], profile: str = '5inch', margin_m: flo
     """
     return opening.check_opening(path, profile=profile, margin_m=margin_m, channel=channel, spacing_m=spacing_m,
                                  dims_m=dims_m, near_m=near_m, top=top, catalog=_catalog())
+
+
+def _reference_partial(result: dict) -> str | None:
+    if result.get('loaded_chunks', 0) < result.get('chunks', 0):
+        return (f"reference loaded {result.get('loaded_chunks')}/{result.get('chunks')} chunks: "
+                f"{result.get('stopped') or 'stopped early'}")
+    return None
+
+
+@op('Show a textured OBJ as a view-only reference (not saved)', positional=('obj',), effect='write',
+    caution='adds the reference to the open editor at once; it is never saved and does not collide; '
+            'reference_clear removes it',
+    examples=('./uc reference_load /data/city/model.obj --at 0,0,0 --center 120,-40 --radius_m 150',
+              './uc reference_load model.obj --map_origin 51.3397,12.3731 --yaw 0 --datum_m 112.5 --replace'),
+    check=_reference_partial)
+def reference_load(obj: str, at: list[float] | None = None, map_origin: list[float] | None = None, yaw: float = 0,
+                   center: list[float] | None = None, radius_m: float = 0, datum_m: str = 'auto',
+                   near_m: float = 160, far_scale: int = 2, axes: str = '', replace: bool = False,
+                   min_free_gb: float = 3) -> dict:
+    """Load a textured OBJ (+MTL, JPEG map_Kd) into game memory as a view-only reference. Metres, degrees.
+
+    Exactly one of at=[x,y,z] (where the export origin, after center, goes in the map) or map_origin=[lat,lon(,z)]
+    (map origin on WGS84; needs metadata.json with origin lat/lon next to the OBJ). yaw turns it about Z.
+    center=[east,south] and radius_m pick a region of the export (export metres; radius 0 = everything).
+    datum_m: source height put at z (at[2]); 'auto' = 2nd percentile of the region's vertex heights (ground),
+    or a number. axes: what source x,y,z point to (default from metadata.json, else east,up,south). near_m: chunks
+    within it keep full texture resolution, farther ones are downscaled by far_scale (1..8).
+    Packs 96 m chunks (native/ucmesh, cached index; atlas pages only in /dev/shm, deleted after import) and imports
+    them nearest first; stops before a chunk would leave less than min_free_gb GiB of host memory free (reported in
+    stopped). Non-colliding, untagged, never saved, invisible to audits; one reference at a time (replace=True
+    swaps it). load_live clears it. Captures hide it unless reference=True. Returns loaded/total chunks, triangles,
+    est_game_gib, the datum used and timings. A failure midway says how many chunks stay loaded.
+    """
+    return reference.load(obj, at=at, map_origin=map_origin, yaw=yaw, datum_m=datum_m, center=center,
+                          radius_m=radius_m, near_m=near_m, far_scale=far_scale, axes=axes, replace=replace,
+                          min_free_gb=min_free_gb)
+
+
+@op('Chunks, triangles and memory of the loaded reference')
+def reference_status() -> dict:
+    """Read-only state of the textured reference: loaded, hidden, chunks, triangles, texels, pose and estimated game
+    memory. available=false means the loaded agent DLL predates the reference verb."""
+    return {**reference.status(), 'leftover_packs': reference.leftover_packs()}
+
+
+@op('Remove the textured reference and leftover pack files', effect='write')
+def reference_clear() -> dict:
+    """Remove the textured reference from the editor (game memory only; no map changes) and delete any pack folder
+    a killed reference_load left in /dev/shm or the scratch cache."""
+    return reference.clear()
+
+
+@op('Hide or show the textured reference', effect='write',
+    examples=('./uc reference_visibility', './uc reference_visibility --no-hidden'))
+def reference_visibility(hidden: bool = True) -> dict:
+    """Hide (default) or show the textured reference. Captures hide it by themselves; this is for working by eye."""
+    return reference.set_hidden(hidden)
+
+
+# ---------------------------------------------------------------------------- 3D scan (no game)
+
+
+def _scan():
+    from .scan import ops  # numpy is loaded only when a scan command runs
+    return ops
+
+
+@op('Survey a textured OBJ: ground, buildings, trees, cars, facades', positional=('obj',), live='no',
+    examples=('./uc scan_survey /data/city/scene.obj',
+              './uc scan_survey scene.obj --center 120,-40 --radius_m 150 --no-osm --no-vision'))
+def scan_survey(obj: str, center: list[float] | None = None, radius_m: float = 0, res_m: float = 0.25, axes: str = '',
+                osm: bool | None = None, vision: bool | None = None, facades: bool = True,
+                refresh: bool = False, providers: str = 'auto', street_views: bool | None = None) -> dict:
+    """Survey a textured photogrammetry OBJ (no game): rasterise it top-down (native/scanraster, cached ucmesh index)
+    and derive a ground model, surface classes and objects (buildings with footprint, parts, roof type; trees;
+    cars; low structures, shrubs, bridges) with a rule confidence and source each. Metres.
+
+    center=[east,south] export metres and radius_m pick the region (radius 0 = metadata.json area, else the export);
+    res_m analysis cell (0.25; the ortho image is twice as fine). osm (default: on when metadata.json has the origin
+    lat/lon and the network answers): fetch OpenStreetMap for the bbox only (cached beside the survey) and use
+    building footprints to split merged roofs, roads/parking/paths/water as ground classes, tree nodes; credit
+    (c) OpenStreetMap contributors, ODbL. vision (default: on when .venv-vision exists; about 1.5 min on a GPU for
+    500 x 500 m): aerial detectors (YOLO11-OBB vehicles and DOTA classes, Grounding DINO prompts, SAM 2 outlines) on
+    the ortho image confirm or reject geometry cars (carports, sheds, skips), add missed vehicles, pools, boats,
+    solar panels; src mesh+vision / vision, models per object. facades (default on, needs vision): every building
+    wall is rendered straight on from the mesh and windows, doors, balconies, garage doors are detected and fitted
+    to rows / storeys (scan_building, scan_facade). providers (auto: every open data set whose coverage holds the
+    bbox, none, or names): Overture buildings, Copernicus GLO-30, ESA WorldCover and regional sets such as Bavarian
+    DGM1 / LoD2 or the Dutch 3D BAG; a terrain model replaces the ground model, LoD2-type buildings override
+    footprints, heights and roof planes, the rest cross-checks; every object lists agreeing / conflicting sources
+    (evidence); only the bbox leaves the machine (scan_sources). street_views (default on with vision and OSM):
+    cameras along the streets at 1.6 m and 8 m render the mesh; detections (doors, windows, signs, lamps, benches,
+    bins, bollards, bicycles, fences) are lifted to 3D through the render depth and fused across views into objects.
+    A survey of the same OBJ/region/parameters is reused unless
+    refresh; running it again with vision available adds the vision stage to an older survey. The survey becomes
+    current for the other scan_* commands. Disk: ~/.cache/uncrashed-mcp/scan/<key>/ (JSON, no pixels); rasters and
+    images stay in /dev/shm (RAM) and are rebuilt on demand. Returns counts and confidence bands per class, class
+    shares, timings, the vision report, what was skipped and why.
+    """
+    return _scan().scan_survey(obj, center=center, radius_m=radius_m, res_m=res_m, axes=axes, use_osm=osm,
+                               use_vision=vision, facades=facades, refresh=refresh, providers=providers,
+                               street_views=street_views)
+
+
+@op('Scan surveys, placement, RAM rasters and vision models', live='no',
+    examples=('./uc scan_status', './uc scan_status --drop_ram all'))
+def scan_status(survey: str = '', drop_ram: str = '') -> dict:
+    """Known scan surveys (current one marked, object count, OSM used, placed, rasters in RAM and their MB, stale
+    when the OBJ changed since), the frame queries use (map via the placement, else scan), the current survey's
+    newest images in RAM, and whether the vision environment and models exist. survey: key prefix filter.
+    drop_ram: KEY (prefix) or all frees the RAM rasters and images of those surveys (/dev/shm); rasters are rebuilt
+    on the next query, images are gone."""
+    return _scan().scan_status(survey, drop_ram=drop_ram)
+
+
+@op('Set or clear where a scan sits in the map (map frame)', live='mixed', effect='write',
+    needs='no game, except --from_reference (reads the reference loaded in the open editor)',
+    caution='writes the placement file at once (the reply gives the line that restores the previous one); every '
+            'scan_* answer changes frame',
+    examples=('./uc scan_place --at 0,0,0 --yaw 0 --datum_m 54.2', './uc scan_place --at 0,0,1',
+              './uc scan_place --from_reference'))
+def scan_place(at: list[float] | None = None, yaw: float | None = None, datum_m: float | None = None,
+               from_reference: bool = False, clear: bool = False, survey: str = '') -> dict:
+    """Placement of the survey's OBJ in the map, exactly as reference_load places it: at=[x,y,z] Unreal metres of
+    the export origin, yaw degrees about Z, datum_m = source height put at z (yaw and datum_m left out keep the
+    current placement's; the first placement needs datum_m, yaw defaults to 0). The reply lists the replaced
+    placement and a restore line. from_reference copies the last
+    reference_load of the same OBJ on this machine after checking that the reference loaded in the open editor
+    has that pose (needs the game). clear removes it. Stored per OBJ path (every survey of it shares it). With a
+    placement every scan_* query takes and returns map metres (x east, y south, z up); without, export metres
+    (east, south, source up). --frame scan forces export metres."""
+    return _scan().scan_place(at=at, yaw=yaw, datum_m=datum_m, from_reference=from_reference, clear=clear,
+                              survey_key=survey)
+
+
+@op('Ground, top and height above ground at x,y points', positional=('points',), variadic='points', live='no',
+    examples=('./uc scan_height 12,-40 15.5,-38', './uc scan_height 12,-40,8 15.5,-38,8 --agl'))
+def scan_height(points: list[list[float]], agl: bool = False, frame: str = 'auto', survey: str = '') -> dict:
+    """Per x,y point (1..1024, metres in the result frame; scan_grid for whole boxes): ground_z (filtered ground
+    model), top_z (highest mesh surface), height_m above ground, under_m (top minus lowest surface when > 1 m:
+    overhang, deck, canopy), surface class and the object id/class there; under a roof, crown or low object also
+    ground_cls, the class of the nearest visible ground and its distance. x,y,z points add z, agl_m and clearance_m
+    above the top surface; agl: each z is metres above the scan ground. frame: auto (map when placed), map or scan."""
+    return _scan().scan_height(points, agl=agl, frame=frame, survey_key=survey)
+
+
+@op('Ground and top heights along a line', positional=('start', 'end'), live='no',
+    examples=('./uc scan_profile 0,0 80,0 --step_m 2', './uc scan_profile 0,0,6 80,0,6 --agl'))
+def scan_profile(start: list[float], end: list[float], step_m: float = 1, agl: bool = False, frame: str = 'auto',
+                 survey: str = '') -> dict:
+    """Samples every step_m (at most 201) from start x,y to end x,y: distance, ground_z, top_z, height_m, surface
+    class and slope_pct to the next sample (only between two open-ground samples: roof and crown edges are not
+    ground slopes); plus open-ground min/max, top max, steepest and mean ground slope. x,y,z ends add the line z and
+    clearance_m per sample and the minimum; agl: the end z values are metres above the scan ground (the line then
+    follows the ground). For roads, slopes, bridges, walls, flight lines."""
+    return _scan().scan_profile(start, end, step_m=step_m, agl=agl, frame=frame, survey_key=survey)
+
+
+@op('What is at x,y: surface, nearby objects with distances', positional=('point',), live='no',
+    examples=('./uc scan_at 12,-40 --radius_m 15',))
+def scan_at(point: list[float], radius_m: float = 10, limit: int = 15, frame: str = 'auto',
+            survey: str = '') -> dict:
+    """The point's heights and surface (as scan_height), surface class shares within radius_m (0..200), and the
+    objects within radius_m by distance to their footprint or box (0 = inside), at most limit."""
+    return _scan().scan_at(point, radius_m=radius_m, limit=limit, frame=frame, survey_key=survey)
+
+
+@op('List scan objects by class, box or distance', live='no',
+    examples=('./uc scan_objects --classes car --box 0,0,60,40', './uc scan_objects --classes tree,car --near 10,5 --radius_m 30',
+              './uc scan_objects --classes building --sort windows --limit 5',
+              './uc scan_objects --classes car --near 10,5 --nearest 3'))
+def scan_objects(classes: list[str] | None = None, box: list[float] | None = None, near: list[float] | None = None,
+                 radius_m: float = 50, min_conf: float = 0, limit: int = 30, sort: str = '', nearest: int = 0,
+                 frame: str = 'auto', survey: str = '') -> dict:
+    """Objects of the survey filtered by classes (building, building_part, tree, car, truck, bridge, low_structure,
+    small_object, shrub, pool, ...), box x0,y0,x1,y1 or near x,y within radius_m, and min_conf. Rows: id, class,
+    conf, centre, ground_z, height, length, width, yaw (long axis), src (mesh, mesh+osm, mesh+vision, vision),
+    colour (a plain word and rgb hex of the median texture colour) and flag (a reason to doubt it: flat or short
+    car, not a car (stack, clutter), weak vision-only, slender tree or one against a roof of its height, part of a
+    shared OSM building, footprint overlapping another building, OSM footprint disagreeing with the heights).
+    Buildings add area_m2, storeys, windows (facade survey) and roof. sort: near / distance (default with near),
+    conf (default), height, area, storeys, or windows (the most windows on one facade; adds best_side,
+    side_windows). At most limit (1..500) with the uncut total and per-class counts. nearest N (needs near): the N
+    nearest matches with their distance, however far. No hit: summary names the nearest match outside the box or
+    radius and its distance."""
+    return _scan().scan_objects(classes=classes, box=box, near=near, radius_m=radius_m, min_conf=min_conf,
+                                limit=limit, sort=sort, nearest=nearest, frame=frame, survey_key=survey)
+
+
+@op('Surface class shares and outlines in a box', positional=('box',), live='no',
+    examples=('./uc scan_ground 0,0,60,40',))
+def scan_ground(box: list[float], min_area_m2: float = 20, limit: int = 20, simplify_m: float = 0.5,
+                frame: str = 'auto', survey: str = '') -> dict:
+    """Shares of paved, road, parking, path, grass, water, bare, building, vegetation and low_object cells in box
+    x0,y0,x1,y1 (<= 300 x 300 m), and the largest class regions (>= min_area_m2) as outlines simplified by
+    simplify_m, at most limit. Road / parking / path come from OSM when the survey used it."""
+    return _scan().scan_ground(box, min_area_m2=min_area_m2, limit=limit, simplify_m=simplify_m, frame=frame,
+                               survey_key=survey)
+
+
+@op('Footprint, parts, heights, roof and facades of a building', positional=('building',), live='no',
+    examples=('./uc scan_building 42', './uc scan_building 43 --no-survey_facades'))
+def scan_building(building: int, min_facade_m: float = 2, survey_facades: bool = True, frame: str = 'auto',
+                  survey: str = '') -> dict:
+    """One building by object id: footprint polygon (roof outline), parts (each with footprint, heights and roof),
+    ground_z / top_z, eave_m, height_m and ridge_m above ground, roof type with ridge direction and roof_shape
+    (planes fitted to the roof heights: form, slope_pct per plane, pitch_deg, ridge / valley line with heights;
+    low pitches the normals miss), colours (roof, facade tone), OSM tags (osm_conflict when the mapped footprint
+    disagrees with the heights), objects on its roof, and walls >= min_facade_m (ends, length, outward direction;
+    from OSM wall lines when mapped). A building_part id answers for that part (its footprint, heights, roof and
+    walls) and names the parent. With a facade survey each wall has status, storeys, window count, columns and
+    spacing, sill / head heights per window row above ground, doors, balconies, tone and check (window rows that
+    need a look); the building has storeys and totals. A building the survey skipped (small, low) is surveyed now
+    when vision is available (survey_facades, default on; about 10 s) and stored."""
+    return _scan().scan_building(building, min_facade_m=min_facade_m, survey_facades=survey_facades, frame=frame,
+                                 survey_key=survey)
+
+
+@op('Facade image of a building wall with windows and doors drawn', positional=('building',), live='no',
+    examples=('./uc scan_facade 42', './uc scan_facade 42 --side 1'))
+def scan_facade(building: int, side: int | None = None, labels: bool = True, frame: str = 'auto',
+                survey: str = '') -> dict:
+    """Render a building's walls straight on from the scan mesh (one panel per wall, or only side; at most the six
+    longest), with detected windows, doors, garage doors and balconies, window rows (sill / head lines), ground line
+    and a metre grid along the wall and above ground. Works without a facade survey (render only). The PNG is
+    written to /dev/shm (RAM only; derived from the scan: keep it on this machine). Returns its path and the per
+    wall rows as scan_building; open the image to check detections before building from them."""
+    return _scan().scan_facade(building, side=side, labels=labels, frame=frame, survey_key=survey)
+
+
+@op('Is a path above the scan surface? first block, min clearance', positional=('points',), variadic='points',
+    live='no', examples=('./uc scan_free 0,0,30 80,10,25', './uc scan_free 0,0,30 40,0,12 80,0,30 --radius_m 1',
+                         './uc scan_free 0,0,8 100,-100,8 --agl'))
+def scan_free(points: list[list[float]], radius_m: float = 0, margin_m: float = 0.5, agl: bool = False,
+              frame: str = 'auto', survey: str = '') -> dict:
+    """Straight segments through 2..64 x,y,z points tested against the scan's highest surface every half cell,
+    widened by radius_m (0..20, craft half-width). clear when every sample is margin_m above it; else the first
+    blocked sample (position, surface_z, object), blocked length and the minimum clearance. Scan only: placed
+    objects are not seen (check_route_clearance / check_opening in the game); under bridges reads as solid.
+    agl: each z is metres above the ground model and the line follows the ground between points (reported z
+    values are absolute)."""
+    return _scan().scan_free(points, radius_m=radius_m, margin_m=margin_m, agl=agl, frame=frame, survey_key=survey)
+
+
+@op('Top-down scan image with metre grid and object ids', live='no',
+    examples=('./uc scan_view --center 12,-40 --size_m 60', './uc scan_view --box 0,0,120,80 --layer classes'))
+def scan_view(box: list[float] | None = None, center: list[float] | None = None, size_m: float = 60,
+              layer: str = 'ortho', labels: bool = True, classes: list[str] | None = None, px: int = 900,
+              frame: str = 'auto', survey: str = '', compare: str = '', deviations: int = 25) -> dict:
+    """Render a top-down crop (box x0,y0,x1,y1, or center x,y with size_m; sides 1..600 m) of layer ortho (texture
+    colour), ndsm (height above ground) or classes, about px pixels wide, with a labelled metre grid in the result
+    frame (north up when unplaced), object outlines with ids (classes filters them) and a legend. compare: a
+    capture_topdown PNG; then three panels on its box and pixel grid: scan layer | build | edge overlay (scan
+    magenta, build green, white where both agree), with the worst `deviations` (0..500) of the last scan_compare
+    labelled (never ground pieces; warnings when that report is stale or covers another box). The PNG
+    is written to /dev/shm (RAM only; derived from the scan: keep it on this machine). Returns its path; open it."""
+    return _scan().scan_view(box=box, center=center, size_m=size_m, layer=layer, labels=labels, classes=classes,
+                             px=px, frame=frame, survey_key=survey, compare=compare, deviations=deviations)
+
+
+def _scan_mapping():
+    from .scan import mapping
+    return mapping
+
+
+@op('Contact sheet of scan_view crops around points or objects', positional=('points',), variadic='points',
+    live='no', examples=('./uc scan_sheet 12,-40 60,-10', './uc scan_sheet --classes car --box 0,0,120,80 --limit 12',
+                         './uc scan_sheet --objects 997,1014 --layer ndsm'))
+def scan_sheet(points: list[list[float]] | None = None, objects: list[str] | None = None,
+               classes: list[str] | None = None, box: list[float] | None = None, min_conf: float = 0, limit: int = 16,
+               size_m: float = 0, layer: str = 'ortho', labels: bool = True, px: int = 360, columns: int = 0,
+               frame: str = 'auto', survey: str = '') -> dict:
+    """Several top-down scan crops (as scan_view: layer ortho, ndsm or classes; metre grid, object outlines and ids)
+    tiled into one labelled PNG: one crop per x,y point (size_m, default 40 m), per object id in objects, or per
+    object picked by classes / box / min_conf (highest conf first). size_m 0 fits each object (3 x its length,
+    14..120 m). At most limit (1..36) crops of about px pixels; columns 0 = automatic. The PNG is written to /dev/shm
+    (RAM only; derived from the scan: keep it on this machine). Returns its path and the crop list."""
+    return _scan_mapping().scan_sheet(points=points, objects=objects, classes=classes, box=box, min_conf=min_conf,
+                                      limit=limit, size_m=size_m, layer=layer, labels=labels, px=px, columns=columns,
+                                      frame=frame, survey_key=survey)
+
+
+@op('Best catalogue rows for scan objects: size, aspect, roof, scale', positional=('object_id',), live='no',
+    examples=('./uc scan_match 997', './uc scan_match --classes car,tree --box 0,0,120,80 --limit 10'))
+def scan_match(object_id: int | None = None, classes: list[str] | None = None, box: list[float] | None = None,
+               min_conf: float = 0.5, top: int = 3, limit: int = 30, rows: list[str] | None = None,
+               include_hidden: bool = False, frame: str = 'auto', survey: str = '') -> dict:
+    """Catalogue stand-ins for scan objects (the rows search_assets / get_assets show). Per object class a candidate
+    set (car / truck: vehicle meshes; boat; tree: foliage trees; shrub: bushes; building: building and house rows;
+    pool: water; low_structure / small_object: props, barriers, industrial) is scored by box size after the
+    suggested scale (vehicles 0.85..1.15 uniform, trees scale height and crown, buildings per axis 0.5..2), aspect,
+    roof type and ridge direction (from the catalogue mesh hulls; Blueprint rows: roof unknown) and a colour word in
+    the row name when there is one. object_id: the top candidates for one object with score, fit_err_pct,
+    raw_err_pct (scale 1), scale x,y,z, spawn yaw_deg in the result frame and the scaled size. Otherwise every object
+    picked by classes (default car, truck, tree, building), box x0,y0,x1,y1 and min_conf gets its best row (at most
+    limit listed) and each class the rows used most. rows limits the candidates to given row ids; include_hidden
+    adds rows the picker hides. Metres, degrees."""
+    return _scan_mapping().scan_match(object_id=object_id, classes=classes, box=box, min_conf=min_conf, top=top,
+                                      limit=limit, rows=rows, include_hidden=include_hidden, frame=frame,
+                                      survey_key=survey)
+
+
+@op('Write spawn + drop lines for scan objects to a file (not run)', live='no', effect='write',
+    caution='writes a new plan .txt and .json at once (default ./scan-plans/); never sends anything to the game',
+    examples=('./uc scan_plan --box 0,0,120,80', './uc scan_plan --classes car --min_conf 0.8 --out plans/cars.txt',
+              './uc scan_plan --classes ground,car,tree --box -40,-40,40,40 --flat_tol_m 0.3',
+              './uc scan_plan --near 0,0 --radius_m 40 --classes car,tree'))
+def scan_plan(box: list[float] | None = None, classes: list[str] | None = None, min_conf: float = 0.6, out: str = '',
+              buildings: str = 'hint', lift_m: float = 0.5, limit: int = 2000, include_hidden: bool = False,
+              ground_cell_m: float = 2, flat_tol_m: float = 0.3, ground_yaw: float | None = None,
+              max_tile_m: float = 16, near: list[float] | None = None, radius_m: float | None = None, weak: str = 'review',
+              survey: str = '', ground_smooth_m: float = 4) -> dict:
+    """Write agent commands that rebuild scan objects from catalogue rows, for review; nothing is sent to the game.
+    Needs the scan placement (scan_place): every line is in map coordinates (agent centimetres). Per object picked
+    by classes (default car, truck, tree, building), box x0,y0,x1,y1 map metres (or a circle: near x,y and
+    radius_m, centres within it) and min_conf: its best scan_match
+    row, a spawn whose mesh box centre sits on the object centre lift_m above the scan ground (pivot from
+    origin_cm / extent_cm, so base, centre, top and offset pivots all land), yaw from the object's oriented box
+    (buildings: ridge), scale, group=scan.<class>.<id>, then `drop last`. Cars and trucks need visible ground
+    around them (on roofs, decks or water they are skipped); trees rotate through rows that fit nearly as well,
+    with a varied yaw; 'trees' taller than 3 x a crown under 4 m are skipped (roof greenery, building edges). Buildings are not built: buildings=hint (default) writes a comment block (footprint, ground_z,
+    eave / ridge heights, roof and ridge, walls with storeys, window rows, sill / head heights and doors from the
+    facade survey) and the best stand-in as '#?' lines to uncomment by hand; standin spawns it; none leaves them
+    out. out: a .txt path or folder (default ./scan-plans/<survey>-<time>.txt); a .json with the same data and the
+    building hints is written beside it; existing files are never overwritten. limit caps planned objects (1..5000).
+    The class ground (with box) paves the box with smooth fitted surfaces, never per-cell scan heights: one robust
+    plane per connected paved area when it fits within flat_tol_m, else a stiff smooth surface; the kerbside one
+    snapped kerb (8..20 cm or none) above the carriageway; large tilted tiles (up to max_tile_m) on a ground_cell_m
+    lattice turned by ground_yaw (default: along the streets or the map axes, whichever needs fewer tiles) whose
+    corners lie on that surface, so neighbours meet within a centimetre; ground_smooth_m is the bending length
+    (larger: flatter, fewer tiles, further from the scan); a wall or embankment becomes a ramp tile, not a step; material by the surface class (road /
+    parking asphalt, paved concrete, path pavement, grass and bare dirt; under crowns and parked cars the nearest
+    open ground); cells under buildings are left out. The reply gives predicted_steps and the residual to the scan
+    ground; objects in the same plan stand on the planned surface. A weak fit (size off
+    by more than 40 % after scaling, or a non-foliage best score under 0.5: a pallet stack planned as a van) is
+    written as '#?' lines and listed under review (weak=review, default); weak=keep spawns it with a WEAK FIT
+    comment, weak=skip leaves it out. Run the file with agent_batch after reading it."""
+    return _scan_mapping().scan_plan(box=box, classes=classes, min_conf=min_conf, out=out, buildings=buildings,
+                                     lift_m=lift_m, limit=limit, include_hidden=include_hidden,
+                                     ground_cell_m=ground_cell_m, flat_tol_m=flat_tol_m, ground_yaw=ground_yaw,
+                                     max_tile_m=max_tile_m, ground_smooth_m=ground_smooth_m,
+                                     near=near, radius_m=radius_m, weak=weak, survey_key=survey)
+
+
+@op('Placed objects vs scan objects: position, yaw, size, height, fix', positional=('snapshot',), live='mixed',
+    needs='no game with a scene_snapshot .json.gz file, otherwise the open track editor',
+    examples=('./uc scan_compare', './uc scan_compare before_bridge --box 0,0,120,80 --classes car,tree'))
+def scan_compare(snapshot: str = '', box: list[float] | None = None, group: str = '', classes: list[str] | None = None,
+                 min_conf: float = 0.5, position_m: float = 1.0, height_m: float = 1.0, yaw_deg: float = 10,
+                 size_tol: float = 0.15, cell_m: float = 5, top: int = 20, iou: float = 0.6, flat_tol_m: float = 0.3,
+                 survey: str = '') -> dict:
+    """Read-only check of placed objects against the scan; changes nothing. Placed objects come from the open
+    editor (one read-only group export) or from a scene_snapshot name / .json.gz file (a file needs no game).
+    Needs the scan placement. Scan objects picked by classes (default car, truck, tree, building), box x0,y0,x1,y1
+    map metres and min_conf pair with placed objects by group tag first: a group named scan.<class>.<id>,
+    <class>.<id> or b<id> with any suffix (b57nw) stands for that scan object with all its objects; then the
+    nearest unpaired placed object of a fitting kind (vehicle, foliage); buildings also take untagged pieces standing
+    on their cells. Buildings are compared as 0.5 m height rasters of the pieces' top surfaces (inside box when
+    given): iou, coverage, missing / extra m2, median height difference, best_shift_m; status shape_off when iou is
+    under iou, offset when a move within 3 m gains overlap (fix: edit_group delta), height_off beyond height_m.
+    Point objects by their visible size (asset_profile): offset (centres further than position_m apart), yaw_off
+    (long axes more than yaw_deg apart, modulo the row's symmetry), size_off (size_ratio off by more than size_tol;
+    trees: crown), height_off (top beyond height_m; trees 20 %), facing_off or matched, with a transform fix line
+    (centimetres, degrees, - keeps). Ground pieces (tiles, markings, decals, lawn foliage, slabs whose top is the
+    ground) and gameplay rows are only counted; other placed objects nothing explains are listed, tallest first.
+    ground_steps: height steps where neighbouring ground tiles meet (count over 1 cm, p90, max, worst places; a
+    smooth ground has none except kerbs) and tiles whose top is more than flat_tol_m from the scan ground.
+    height_cells compares scan and built height per cell_m cell. group narrows placed objects (group and its . / _
+    children). At most top rows per list; the full report is JSON in the survey folder. Shape bookkeeping, not
+    visual proof: look with capture_topdown and scan_view compare."""
+    return _scan_mapping().scan_compare(snapshot=snapshot, box=box, group=group, classes=classes, min_conf=min_conf,
+                                        position_m=position_m, height_m=height_m, yaw_deg=yaw_deg, size_tol=size_tol,
+                                        cell_m=cell_m, top=top, iou=iou, flat_tol_m=flat_tol_m, survey_key=survey)
+
+
+@op('Straight-down build image on the scan_view pixel grid',
+    examples=('./uc capture_topdown --box 0,0,120,80', './uc capture_topdown --center 12,-40 --size_m 60 --reference only'))
+def capture_topdown(box: list[float] | None = None, center: list[float] | None = None, size_m: float = 60,
+                    px: int = 900, reference: str = 'hide', projection: str = 'auto', ground_z: float | None = None,
+                    top_z: float | None = None, survey: str = '') -> dict:
+    """Render the open editor straight down over box x0,y0,x1,y1 (or center x,y with size_m; map metres) on exactly
+    the pixel grid scan_view uses for the same box and px, north up, without moving the editor camera.
+    projection auto: orthographic (needs the agent DLL with capture modes), else a narrow perspective camera high
+    above (the reply states projection and parallax); ortho / perspective force one. reference: hide (default:
+    a loaded textured reference is hidden for the capture), include, or only (render nothing but the reference:
+    a before picture at any time; needs the new DLL). ground_z / top_z place the camera; default from the scan
+    (placement) in the box, else 0 / 60 m. The PNG and a .json sidecar go to /dev/shm (RAM); next: scan_view
+    with compare set to the image path."""
+    return _scan_topdown().capture_topdown(box=box, center=center, size_m=size_m, px=px, reference=reference,
+                                           projection=projection, ground_z=ground_z, top_z=top_z, survey_key=survey)
+
+
+def _scan_topdown():
+    from .scan import topdown
+    return topdown
+
+
+@op('Visible size, symmetry, front, crown and tilt of catalogue rows', positional=('rows',), variadic='rows',
+    live='no', examples=('./uc asset_profile NewRow_168 NewRow_52', './uc asset_profile NewRow_257 --refresh'))
+def asset_profile(rows: list[str], refresh: bool = False) -> dict:
+    """Measured profile per catalogue row, as a scan measures objects: visible_m (top silhouette extents along the
+    row's x and y and its 95th percentile top height, metres), visible_frac of the bounding box, long_axis_deg of
+    the silhouette in the row frame, symmetry and yaw_period_deg (a yaw error counts modulo it: 0 round, 90 square,
+    180 symmetric, 360 none; front is +x by engine convention, not measured), crown_m / crown_frac / crown_base_m
+    for foliage (a tree's bounding box reaches its outermost leaf cards: scale trees by crown, never by box),
+    panel tilt and facing, footprint shape. From the game's cooked LOD0 when the paks are installed, else the
+    simplified hulls in data/meshes.bin; Blueprints fall back to the box. Cached per catalogue version; refresh
+    measures again. scan_match, scan_plan and scan_compare use these profiles."""
+    from .scan import profile
+    return profile.asset_profile(rows, refresh=refresh)
+
+
+@op('Open data providers of a place or survey: coverage, licence, fusion', live='no',
+    examples=('./uc scan_sources', './uc scan_sources --latlon 49.4539,11.0775 --radius_m 150'))
+def scan_sources(latlon: list[float] | None = None, radius_m: float = 150, survey: str = '') -> dict:
+    """Data providers scan_survey can use. With latlon=[lat, lon] (degrees) and radius_m: which providers cover
+    that place (offline test of their published extents; regional tiles are confirmed when scan_survey fetches).
+    Without: the current survey's providers (used, covering, why not, fetch seconds, licence), the attribution
+    lines to credit, how each source fused, the declined sources with the reason (Mapillary), the fusion report
+    (terrain offset and residuals, surface / land-cover checks, buildings overridden / split / added / flagged,
+    agreeing and conflicting objects) and the street-view report. Only a bbox, tile names or byte ranges of public
+    files ever leave the machine. survey: key prefix."""
+    return _scan().scan_sources(latlon=latlon, radius_m=radius_m, survey_key=survey)
+
+
+@op('Raster export of a box: ground, top, height, class, object id', positional=('box',), live='no',
+    examples=('./uc scan_grid 0,0,120,80', './uc scan_grid -60,-60,60,60 --res_m 0.5 --layers top,class'))
+def scan_grid(box: list[float], res_m: float = 1, layers: list[str] | None = None, out: str = '', frame: str = 'auto',
+              survey: str = '') -> dict:
+    """The scan sampled on a regular grid over box x0,y0,x1,y1 (result frame) every res_m (0.1..20; at most 1,000,000
+    cells): per cell dtm (mean ground z), top (highest surface z), height above ground, class (code of the highest
+    sub-sample; codes in the header) and object (scan object id, -1 none); layers picks some. Written as one
+    compressed numpy .npz with a .json header (grid origin, cell size, layout, class codes) to /dev/shm, or to
+    out (a new .npz path or a folder): derived from the scan, keep it on this machine. Returns the paths and a
+    summary (z ranges, class shares, the objects with the most cells). For heights at a few points use
+    scan_height; this replaces many calls when a whole area is needed (ground cells, height rasters, masks)."""
+    return _scan().scan_grid(box, res_m=res_m, layers=layers, out=out, frame=frame, survey_key=survey)

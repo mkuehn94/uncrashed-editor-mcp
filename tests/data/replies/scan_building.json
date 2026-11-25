@@ -1,0 +1,158 @@
+{
+ "survey": "f0e1b69392c2",
+ "frame": "scan",
+ "id": 0,
+ "conf": 0.95,
+ "src": "mesh",
+ "center": [
+  -15.0,
+  -16.0
+ ],
+ "ground_z": 0.0,
+ "top_z": 6.0,
+ "height_m": 6.0,
+ "eave_m": 6.0,
+ "ridge_m": 6.0,
+ "length_m": 9.5,
+ "width_m": 7.5,
+ "yaw_deg": 0.0,
+ "area_m2": 71.2,
+ "roof": "flat",
+ "roof_conf": 1.0,
+ "ridge_yaw_deg": null,
+ "osm": null,
+ "split_by_osm": false,
+ "footprint": [
+  [
+   -19.62,
+   -19.62
+  ],
+  [
+   -10.38,
+   -19.62
+  ],
+  [
+   -10.38,
+   -12.38
+  ],
+  [
+   -19.62,
+   -12.38
+  ]
+ ],
+ "parts": [],
+ "facades_surveyed": true,
+ "storeys": 2,
+ "windows": 16,
+ "doors": 4,
+ "facades": [
+  {
+   "side": 0,
+   "from": "roof_outline",
+   "x0": -19.62,
+   "y0": -19.62,
+   "x1": -10.38,
+   "y1": -19.62,
+   "length_m": 9.24,
+   "faces_deg": 270.0,
+   "status": "surveyed",
+   "storeys": 2,
+   "windows": 4,
+   "columns": 2,
+   "spacing_m": 3.67,
+   "sill_m": [
+    1.84,
+    3.92
+   ],
+   "head_m": [
+    2.67,
+    4.76
+   ],
+   "doors": 1,
+   "balconies": 0
+  },
+  {
+   "side": 1,
+   "from": "roof_outline",
+   "x0": -10.38,
+   "y0": -19.62,
+   "x1": -10.38,
+   "y1": -12.38,
+   "length_m": 7.24,
+   "faces_deg": 0.0,
+   "status": "surveyed",
+   "storeys": 2,
+   "windows": 4,
+   "columns": 2,
+   "spacing_m": 2.97,
+   "sill_m": [
+    1.84,
+    3.92
+   ],
+   "head_m": [
+    2.67,
+    4.76
+   ],
+   "doors": 1,
+   "balconies": 0
+  },
+  {
+   "side": 2,
+   "from": "roof_outline",
+   "x0": -10.38,
+   "y0": -12.38,
+   "x1": -19.62,
+   "y1": -12.38,
+   "length_m": 9.24,
+   "faces_deg": 90.0,
+   "status": "surveyed",
+   "storeys": 2,
+   "windows": 4,
+   "columns": 2,
+   "spacing_m": 3.67,
+   "sill_m": [
+    1.84,
+    3.92
+   ],
+   "head_m": [
+    2.67,
+    4.76
+   ],
+   "doors": 1,
+   "balconies": 0
+  },
+  {
+   "side": 3,
+   "from": "roof_outline",
+   "x0": -19.62,
+   "y0": -12.38,
+   "x1": -19.62,
+   "y1": -19.62,
+   "length_m": 7.24,
+   "faces_deg": 180.0,
+   "status": "surveyed",
+   "storeys": 2,
+   "windows": 4,
+   "columns": 2,
+   "spacing_m": 2.97,
+   "sill_m": [
+    1.84,
+    3.92
+   ],
+   "head_m": [
+    2.67,
+    4.76
+   ],
+   "doors": 1,
+   "balconies": 0
+  }
+ ],
+ "on_roof": [],
+ "units": "metres",
+ "meaning": "heights above ground: eave_m 15th percentile, height_m 95th, ridge_m 99th of the roof; facades: walls (from OSM wall lines or the roof outline), faces_deg outward (yaw convention), status surveyed / no_view (too little mesh facing it) / not_surveyed; sill_m / head_m per window row above ground; scan_facade ID --side N shows one",
+ "limitations": [
+  "Footprint traces the roof (eaves overhang the walls by ~0.3-0.8 m).",
+  "Windows / doors are Grounding DINO boxes on a render of the photogrammetry texture: blurred, mirrored or tree-covered walls give few or false boxes; look with scan_facade.",
+  "Ground-floor shop fronts are often missed; storeys count window rows."
+ ]
+}

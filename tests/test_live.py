@@ -16,6 +16,10 @@ def setUpModule():
     lock = patch.object(live.agent, 'LOCK', Path(tmp.name)/'agent.lock')
     lock.start()
     unittest.addModuleCleanup(lock.stop)
+    # no textured reference loaded: capture_view's one status call answers without the agent
+    none = patch.object(live.reference, 'status', return_value={'available': True, 'loaded': False, 'hidden': False})
+    none.start()
+    unittest.addModuleCleanup(none.stop)
 
 
 def image(path, width, height):

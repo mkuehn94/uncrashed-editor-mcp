@@ -1,0 +1,65 @@
+{
+ "survey": "4a3c85a05da0",
+ "frame": "map",
+ "total": 4,
+ "by_class": {
+  "building": 2,
+  "car": 2
+ },
+ "objects": [
+  {
+   "id": 0,
+   "cls": "building",
+   "conf": 0.95,
+   "x": 116.0,
+   "y": 185.0,
+   "ground_z": 50.0,
+   "height_m": 6.0,
+   "length_m": 9.5,
+   "width_m": 7.5,
+   "yaw_deg": 90.0,
+   "src": "mesh"
+  },
+  {
+   "id": 1,
+   "cls": "building",
+   "conf": 0.95,
+   "x": 115.0,
+   "y": 215.0,
+   "ground_z": 50.0,
+   "height_m": 7.91,
+   "length_m": 11.5,
+   "width_m": 7.5,
+   "yaw_deg": 90.0,
+   "src": "mesh"
+  },
+  {
+   "id": 3,
+   "cls": "car",
+   "conf": 0.75,
+   "x": 85.0,
+   "y": 189.75,
+   "ground_z": 50.0,
+   "height_m": 1.5,
+   "length_m": 4.5,
+   "width_m": 2.0,
+   "yaw_deg": 90.0,
+   "src": "mesh"
+  },
+  {
+   "id": 4,
+   "cls": "car",
+   "conf": 0.75,
+   "x": 85.0,
+   "y": 195.75,
+   "ground_z": 50.0,
+   "height_m": 1.5,
+   "length_m": 4.5,
+   "width_m": 2.0,
+   "yaw_deg": 90.0,
+   "src": "mesh"
+  }
+ ],
+ "truncated": false,
+ "units": "metres"
+}

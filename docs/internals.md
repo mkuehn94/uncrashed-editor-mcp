@@ -1,6 +1,6 @@
 # Internals
 
-A command line tool (with an optional MCP adapter) that edits the open **Uncrashed: FPV Drone Simulator** track editor live (Steam app 1682970, Unreal Engine 4.27). An agent injected into the game calls the editor's own functions, so everything placed behaves and saves like a hand-placed object. It exposes 41 operations with short replies by default.
+A command line tool (with an optional MCP adapter) that edits the open **Uncrashed: FPV Drone Simulator** track editor live (Steam app 1682970, Unreal Engine 4.27). An agent injected into the game calls the editor's own functions, so everything placed behaves and saves like a hand-placed object. It exposes 65 operations with short replies by default.
 
 ## Run it
 
@@ -60,6 +60,9 @@ Every row is a CLI command (`./uc <name>`; MCP tool of the same name); `./uc hel
 | `check_opening` | first obstruction along a short approach -> opening -> exit path (route-clearance sweep), each finding tagged live-collision / override-active / unverified |
 | `define_assembly` / `check_assembly` | saved group roles, measured foundation anchors and cantilever-aware connectivity |
 | `agent_log` / `agent_unload` | agent log and DLL hot-swap |
+| `scan_survey` / `scan_status` / `scan_place` | survey a textured OBJ offline (native/scanraster + numpy, optional OSM priors, vision detectors as a `.venv-vision` subprocess) and place it in the map frame; see [scan.md](scan.md) |
+| `scan_height` / `scan_profile` / `scan_at` / `scan_objects` / `scan_ground` / `scan_building` / `scan_facade` / `scan_free` / `scan_view` / `scan_grid` | spatial questions against a survey (windows / storeys per wall, roof planes, parts); top-down crops, facade renders and raster exports in /dev/shm |
+| `scan_sheet` / `scan_match` / `scan_plan` / `scan_compare` | labelled sheet of scan crops; catalogue stand-ins per scan object (size, proportions, roof from the mesh hulls); a reviewable spawn + `drop last` file in map coordinates (never run); placed scene (read-only group export or snapshot) vs scan objects |
 
 Everything else goes through the agent's command language (centimetres and degrees). The full list is `./uc help verbs` (also the MCP server instructions); the common ones:
 

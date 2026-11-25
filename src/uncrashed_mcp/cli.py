@@ -26,7 +26,7 @@ from . import __version__, agent, api
 PROG = './uc'
 EMPTY = inspect.Parameter.empty
 BUILTINS = ('help', 'last', 'mcp')
-TOPICS = ('guide', 'verbs', 'output')
+TOPICS = ('guide', 'verbs', 'output', 'scan')
 GLOBAL_FLAGS = ('json', 'pick', 'help', 'version')
 REGION = ('x0', 'y0', 'x1', 'y1')
 SCALARS = ('str', 'int', 'float', 'bool')
@@ -672,7 +672,7 @@ def _overview() -> str:
         '',
         'No game needed:',
         *groups['no'],
-        'A saved map NAME without the game, otherwise the open editor:',
+        'Without the game for a saved map NAME, a file or given values; otherwise the open editor:',
         *groups['mixed'],
         'Game open in the track editor:',
         *groups['yes'],
@@ -680,8 +680,8 @@ def _overview() -> str:
 
 
 def _command_help(op: api.Op) -> str:
-    needs = {'no': 'no game', 'mixed': 'no game when given a saved map NAME, otherwise the open track editor',
-             'yes': 'the game open in the track editor'}[op.live]
+    needs = op.needs or {'no': 'no game', 'mixed': 'no game when given a saved map NAME, otherwise the open track editor',
+                         'yes': 'the game open in the track editor'}[op.live]
     lines = [f'{op.name}: {op.summary}', f'usage: {_usage(op)}']
     if op.aliases:
         lines.append(f"alias: {', '.join(op.aliases)}")
@@ -701,6 +701,9 @@ def _help(topic: str | None) -> str:
     if key in ('', 'help', 'commands'):
         return _overview()
     if key in TOPICS:
+        if key == 'scan':
+            from .scan import HELP
+            return HELP
         return {'guide': api.GUIDE, 'verbs': api.VERBS, 'output': OUTPUT}[key]
     commands = _commands()
     if key in commands:

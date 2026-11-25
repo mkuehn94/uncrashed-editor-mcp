@@ -854,7 +854,7 @@ class HelpTests(Case):
     def test_overview(self):
         code, out, err = run()
         self.assertEqual((code, err), (0, ''))
-        self.assertLess(len(out), 4500)
+        self.assertLess(len(out), 6050)  # 11 scan_* commands joined at 4405; 16 at 5612; scan_grid at 5967
         for argv in (['help'], ['--help'], ['-h'], ['help', 'commands']):
             self.assertEqual(run(*argv), (0, out, ''), argv)
         lines = out.splitlines()
@@ -868,7 +868,7 @@ class HelpTests(Case):
                        '~ = changes them only with --apply, previews otherwise.'):
             self.assertIn(needle, head)
         self.assertNotIn('edits preview unless --apply', head)  # untrue for exec, batch, load_live, save_live, unload
-        headings = ['No game needed:', 'A saved map NAME without the game, otherwise the open editor:',
+        headings = ['No game needed:', 'Without the game for a saved map NAME, a file or given values; otherwise the open editor:',
                     'Game open in the track editor:']
         self.assertEqual([line for line in lines if line.endswith(':') and not line.startswith(('!', ' '))], headings)
         group = {'No game needed:': 'no', headings[1]: 'mixed', headings[2]: 'yes'}
@@ -891,7 +891,8 @@ class HelpTests(Case):
             self.assertEqual('[--apply]' in cli._usage(op), mark == '~', name)
         marks = {name: mark for name, (mark, _live, _line) in listed.items()}
         self.assertEqual({name for name, mark in marks.items() if mark == '!'},
-                         {'load_live', 'save_live', 'agent_exec', 'agent_batch', 'agent_unload'})
+                         {'load_live', 'save_live', 'agent_exec', 'agent_batch', 'agent_unload', 'reference_load',
+                          'reference_clear', 'reference_visibility', 'scan_place', 'scan_plan'})
         self.assertEqual({name for name, mark in marks.items() if mark == '~'},
                          {'clearing_zones', 'edit_group', 'undo_edit', 'define_assembly', 'set_collision',
                           'undo_collision', 'consolidate_scenery'})
@@ -1901,13 +1902,15 @@ class LauncherTests(unittest.TestCase):
         offline = 'error: offline mode (UNCRASHED_OFFLINE set): live agent calls are disabled\n'
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'plan.txt').write_text('mapinfo\n')
+            scan = {'UNCRASHED_SCAN_DIR': str(Path(tmp) / 'scan'), 'UNCRASHED_SCAN_SHM': str(Path(tmp) / 'shm')}
             for op in api.OPERATIONS.values():
                 for example in op.examples:
                     words = shlex.split(example)
-                    done = uc(*words[1:], stdin='mapinfo\n', cwd=tmp)
+                    done = uc(*words[1:], stdin='mapinfo\n', cwd=tmp, env=scan)
                     self.assertIn(done.returncode, (0, 1), (example, done.stderr))  # never a usage error
                     if done.returncode == 1 and done.stderr != offline:  # the examples' map does not exist
-                        self.assertRegex(done.stderr, r"^error: no (local map 'MyMap' in |saved map at \S*MyMap\.json\n)",
+                        self.assertRegex(done.stderr, r"^error: no (local map 'MyMap' in |saved map at \S*MyMap\.json\n|such OBJ: "
+                                                      r"|scan survey yet: run scan_survey OBJ first\n)",
                                          example)
                     if done.returncode == 0:
                         self.assertEqual(op.live, 'no', example)
@@ -1915,7 +1918,7 @@ class LauncherTests(unittest.TestCase):
     def test_help_and_version(self):
         done = uc()
         self.assertEqual((done.returncode, done.stderr), (0, ''))
-        self.assertLess(len(done.stdout), 4500)
+        self.assertLess(len(done.stdout), 6050)
         self.assertEqual(uc('help').stdout, done.stdout)
         self.assertEqual(uc('--version').stdout, f'uncrashed {uncrashed_mcp.__version__}\n')
         self.assertEqual(uc('help', 'verbs').stdout, api.VERBS + '\n')

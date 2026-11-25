@@ -141,6 +141,27 @@ class OpeningTests(unittest.TestCase):
         _, reply, _ = self.check(matched=900)
         self.assertFalse(reply['complete'])
 
+    def test_many_objects_near_the_path_are_paged_not_cut_at_500(self):
+        many = [{'actor': f'w{i}', 'row': 'NewRow_502', 'mode': 'on', 'location_m': [i * 0.006 - 3.6, 0, 4]}
+                for i in range(1200)] + NEARBY
+
+        def fake(**kw):
+            if 'actors' in kw:
+                return {'objects': [{'actor': a, 'row': None, 'mode': 'on'} for a in kw['actors']],
+                        'matched': len(kw['actors'])}
+            lo, hi = kw['box_min'], kw['box_max']
+            inside = [o for o in many if all(lo[k] <= o['location_m'][k] <= hi[k] for k in range(3))]
+            return {'objects': inside[:kw['top']], 'matched': len(inside)}
+        world = FakeSweep(hits=False, near=False)
+        with TemporaryDirectory() as tmp, patch.object(opening, 'REPORT_DIR', Path(tmp)), \
+                patch.object(opening.agent, 'run', world.run), \
+                patch.object(opening.agent, 'session', contextlib.nullcontext), \
+                patch.object(opening.scenery, 'collision_state', fake):
+            reply = opening.check_opening(PATH, near_m=5)
+        self.assertTrue(reply['complete'], reply['notes'])
+        self.assertEqual(reply['unverified_object_count'], len(many))
+        self.assertTrue(any('box pages' in n for n in reply['notes']), reply['notes'])
+
     def test_failed_override_lookup_is_incomplete_and_unverified(self):
         _, reply, report = self.check(lookup_error=ValueError('lookup refused'))
         self.assertFalse(reply['complete'])

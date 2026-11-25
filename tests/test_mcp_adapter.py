@@ -46,6 +46,16 @@ class ToolListTests(unittest.TestCase):
         # declared: capture_view gains `out`; agent_batch documents the new failure format (with the L<file line>
         # a file-based caller gets, and the cap of 20 listed failures)
         by_name['capture_view']['input_schema']['properties']['out'] = {'default': '', 'title': 'Out', 'type': 'string'}
+        # declared: capture_view gains `reference` (keep a loaded textured reference in the image) and says so
+        by_name['capture_view']['input_schema']['properties']['reference'] = {'default': False, 'title': 'Reference',
+                                                                              'type': 'boolean'}
+        # declared: and `reference_only` (render nothing but the reference: the before half of a pair)
+        by_name['capture_view']['input_schema']['properties']['reference_only'] = {
+            'default': False, 'title': 'Reference Only', 'type': 'boolean'}
+        view = next(tool for tool in listed if tool['name'] == 'capture_view')
+        self.assertEqual(view['description'], api.capture_view.__doc__)
+        self.assertTrue(view['description'].startswith(by_name['capture_view']['description'].rstrip()))
+        by_name['capture_view']['description'] = view['description']
         batch = next(tool for tool in listed if tool['name'] == 'agent_batch')
         self.assertTrue(batch['description'].startswith(by_name['agent_batch']['description'].rstrip()))
         self.assertNotEqual(batch['description'], by_name['agent_batch']['description'])
@@ -53,7 +63,17 @@ class ToolListTests(unittest.TestCase):
         by_name['agent_batch']['description'] = batch['description']
         # declared: operations added after the port follow the baseline tools, described by their own docstrings
         added = listed[len(expected):]
-        self.assertEqual([tool['name'] for tool in added], ['capture_sheet', 'scene_snapshot', 'scene_diff', 'check_opening'])
+        self.assertEqual([tool['name'] for tool in added], ['capture_sheet', 'scene_snapshot', 'scene_diff', 'check_opening',
+                                                            'reference_load', 'reference_status', 'reference_clear',
+                                                            'reference_visibility', 'scan_survey', 'scan_status',
+                                                            'scan_place', 'scan_height', 'scan_profile', 'scan_at',
+                                                            'scan_objects', 'scan_ground', 'scan_building', 'scan_facade',
+                                                            'scan_free', 'scan_view', 'scan_sheet', 'scan_match',
+                                                            'scan_plan', 'scan_compare', 'capture_topdown',
+                                                            'asset_profile', 'scan_sources', 'scan_grid'])
+        load = added[4]
+        self.assertEqual(load['input_schema']['required'], ['obj'])
+        self.assertEqual(load['input_schema']['properties']['datum_m'].get('default'), 'auto')
         opening = added[3]
         self.assertEqual(opening['input_schema']['required'], ['path'])
         self.assertEqual({k: v.get('default') for k, v in opening['input_schema']['properties'].items()},
@@ -70,7 +90,8 @@ class ToolListTests(unittest.TestCase):
         self.assertEqual(sheet['description'], api.capture_sheet.__doc__)
         self.assertEqual(sheet['input_schema']['required'], ['poses'])
         self.assertEqual({k: v.get('default') for k, v in sheet['input_schema']['properties'].items()},
-                         {'poses': None, 'width': 480, 'height': 270, 'columns': 0, 'out': ''})
+                         {'poses': None, 'width': 480, 'height': 270, 'columns': 0, 'out': '', 'reference': False,
+                          'reference_only': False})
         listed = listed[:len(expected)]
         self.assertEqual([tool['name'] for tool in listed], [tool['name'] for tool in expected])
         for got, want in zip(listed, expected):

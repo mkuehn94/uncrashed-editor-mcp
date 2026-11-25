@@ -4,6 +4,7 @@ Imports PIL and live lazily so api stays light. Units: metres and degrees.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import math
 import os
@@ -113,7 +114,12 @@ def _folder(folder: Path) -> Path:
     return folder
 
 
-def _compose(shots: list[dict], width: int, height: int, columns: int, path: Path) -> None:
+def _caption(index: int, shot: dict) -> str:
+    return f"{index + 1} {shot['label']}  {shot['x']:g},{shot['y']:g},{shot['z']:g} y{shot['yaw']:g} p{shot['pitch']:g}"
+
+
+def compose(shots: list[dict], width: int, height: int, columns: int, path: Path, caption=_caption) -> None:
+    """Tile shots ({'image': path or None, ...}) into one PNG with a caption strip per tile (also used by scan_sheet)."""
     from PIL import Image, ImageDraw, ImageFont
     strip = _strip(height)
     rows = math.ceil(len(shots) / columns)
@@ -128,31 +134,20 @@ def _compose(shots: list[dict], width: int, height: int, columns: int, path: Pat
         else:
             draw.rectangle((left, top + strip, left + width - 1, top + strip + height - 1), fill=(70, 20, 20))
             draw.text((left + 6, top + strip + 6), 'FAILED', fill=(255, 200, 200), font=font)
-        caption = f"{index + 1} {shot['label']}  {shot['x']:g},{shot['y']:g},{shot['z']:g} y{shot['yaw']:g} p{shot['pitch']:g}"
-        draw.text((left + 4, top + 2), caption, fill=(255, 255, 255), font=font)
+        draw.text((left + 4, top + 2), caption(index, shot), fill=(255, 255, 255), font=font)
         draw.rectangle((left, top, left + width - 1, top + strip + height - 1), outline=(90, 90, 90))
     sheet.save(path)
 
 
-def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int = 0, out: str = '') -> dict:
-    """Validate, capture every pose inside one agent session, tile, write originals + index.json."""
-    from . import live
-    parsed = parse_poses(poses)
-    columns = _validate(width, height, columns, len(parsed))
-    folder = _target(out)
-    started = time.monotonic()
-    shots = []
-    with agent.session():  # short: other clients are not starved during a long sheet
-        camera = live.read_camera()  # FOV only; the editor camera is not moved
-    fov = float(camera['fov'])
-    SHEETS.mkdir(parents=True, exist_ok=True)
+def _capture_all(live, parsed: list[dict], shots: list[dict], folder: Path, fov: float, width: int, height: int,
+                 only: str = '') -> None:
     for index, pose in enumerate(parsed, 1):
         shot = {**pose, 'image': None, 'seconds': None, 'error': None}
         began = time.monotonic()
         raw = SHEETS / f'sheet-{uuid.uuid4().hex}.png'
         try:
             with agent.session():  # one lock hold per pose
-                live._engine_capture(raw, {**pose, 'roll': 0.0, 'fov': fov}, width, height)
+                live._engine_capture(raw, {**pose, 'roll': 0.0, 'fov': fov}, width, height, *((0, only) if only else ()))
         except agent.AgentNotSent:
             raw.unlink(missing_ok=True)
             if not any(s['image'] for s in shots):
@@ -168,10 +163,28 @@ def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int 
             shot['image'] = str(dest)
         shot['seconds'] = round(time.monotonic() - began, 2)
         shots.append(shot)
+
+
+def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int = 0, out: str = '',
+                  include_reference: bool = False, reference_only: bool = False) -> dict:
+    """Validate, capture every pose inside one agent session, tile, write originals + index.json."""
+    from . import live, reference
+    parsed = parse_poses(poses)
+    columns = _validate(width, height, columns, len(parsed))
+    folder = _target(out)
+    started = time.monotonic()
+    shots = []
+    with agent.session():  # short: other clients are not starved during a long sheet
+        camera = live.read_camera()  # FOV only; the editor camera is not moved
+    fov = float(camera['fov'])
+    SHEETS.mkdir(parents=True, exist_ok=True)
+    with reference.capture_guard(include_reference or reference_only) as shown, \
+            (reference.only_guard(shown) if reference_only else contextlib.nullcontext()):  # once per sheet
+        _capture_all(live, parsed, shots, folder, fov, width, height, 'reference' if reference_only else '')
     capture_seconds = round(time.monotonic() - started, 2)
     _folder(folder)
     sheet_path = folder / 'sheet.png'
-    _compose(shots, width, height, columns, sheet_path)
+    compose(shots, width, height, columns, sheet_path)
     failed = [s for s in shots if s['error']]
     index_path = folder / 'index.json'
     result = {
@@ -182,7 +195,7 @@ def capture_sheet(poses: str, width: int = 480, height: int = 270, columns: int 
         'shots': [{'label': s['label'], 'x': s['x'], 'y': s['y'], 'z': s['z'], 'yaw': s['yaw'], 'pitch': s['pitch'],
                    'image': s['image'] and os.path.basename(s['image']), 'seconds': s['seconds'], 'error': s['error']}
                   for s in shots],
-        'editor_camera_moved': False,
+        'editor_camera_moved': False, **shown, **({'only': 'reference'} if reference_only else {}),
         'limitations': LIMITATIONS,
     }
     full = dict(result, shots=shots)

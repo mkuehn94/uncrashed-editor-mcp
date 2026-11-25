@@ -156,7 +156,39 @@ static void capture_hide_editor_helpers(uint8_t *component) {
     }
 }
 
-static int capture_begin_native(int width,int height,const struct xf *t,float fov,char *err,int ecap) {
+static uint8_t *ref_capture_actor(void); /* reference.h: the textured reference actor or 0 */
+
+/* Orthographic projection (ortho_cm > 0: view width in cm) and "reference only" (show-only list holding the
+   textured reference actor, everything else unrendered). Set before the first CaptureScene. */
+static int capture_modes(uint8_t *component,float ortho_cm,int reference_only,char *err,int ecap) {
+    uint8_t v,p[0x40],one=1,*fn,*ref; int off;
+    if(ortho_cm>0) {
+        off=field_offset(component,"ProjectionType");
+        if(off<=0 || !np_enum("ECameraProjectionMode","Orthographic",&v)) { snprintf(err,ecap,"orthographic capture unavailable (reflection)"); return 0; }
+        component[off]=v;
+        off=field_offset(component,"OrthoWidth");
+        if(off<=0) { snprintf(err,ecap,"orthographic capture unavailable (OrthoWidth)"); return 0; }
+        memcpy(component+off,&ortho_cm,4);
+    }
+    if(reference_only) {
+        ref=ref_capture_actor();
+        if(!ref) { snprintf(err,ecap,"no reference loaded for a reference-only capture"); return 0; }
+        off=field_offset(component,"PrimitiveRenderMode");
+        fn=object_function(component,"ShowOnlyActorComponents");
+        if(off<=0 || !fn || !np_enum("ESceneCapturePrimitiveRenderMode","PRM_UseShowOnlyList",&v)) {
+            snprintf(err,ecap,"reference-only capture unavailable (reflection)"); return 0;
+        }
+        component[off]=v;
+        memset(p,0,sizeof p);
+        if(!np_put(fn,p,sizeof p,"InActor",&ref,8)) { snprintf(err,ecap,"ShowOnlyActorComponents signature unavailable"); return 0; }
+        np_put(fn,p,sizeof p,"bIncludeFromChildActors",&one,1);
+        call(component,fn,p);
+    }
+    return 1;
+}
+
+static int capture_begin_native(int width,int height,const struct xf *t,float fov,float ortho_cm,int reference_only,
+                                char *err,int ecap) {
     uint8_t p[0x200],one=1,fmt,source,*lib=class_cdo("KismetRenderingLibrary"),*game=class_cdo("GameplayStatics");
     uint8_t *fn,*actor=0,*component=0,*target=0,*cls=find_struct("SceneCapture2D"),*world=current_world();
     float transform[12],clear[4]={0,0,0,1}; int ret,off;
@@ -184,24 +216,32 @@ static int capture_begin_native(int width,int height,const struct xf *t,float fo
     off=field_offset(component,"CaptureSource"); if(off<=0) goto unavailable; component[off]=source;
     off=field_offset(component,"FOVAngle"); if(off<=0) goto unavailable; memcpy(component+off,&fov,4);
     fn=object_function(component,"CaptureScene"); if(!fn || !actor_set(actor,t)) goto unavailable;
+    if(!capture_modes(component,ortho_cm,reference_only,err,ecap)) { capture_stop_native(); return 0; }
     capture_hide_editor_helpers(component);
     np_bool(component,"bCaptureEveryFrame",1,0);
     memset(p,0,sizeof p); call(component,fn,p);
     capture_job.component=component; capture_job.target=target;
     capture_job.token=++capture_serial; capture_job.started=GetTickCount();
-    outf("capture token=%lu width=%d height=%d backend=engine",capture_job.token,width,height); return 1;
+    outf("capture token=%lu width=%d height=%d backend=engine projection=%s only=%s",capture_job.token,width,height,
+         ortho_cm>0?"ortho":"perspective",reference_only?"reference":"all"); return 1;
 unavailable:
     capture_stop_native(); snprintf(err,ecap,"native render-target capture unavailable (reflection or resource creation failed)"); return 0;
 }
 
-/* start w h x y z pitch yaw fov; export token directory filename; stop token.
-   Export is a separate job so rendering can run between preparation/readback. */
+/* start w h x y z pitch yaw roll fov [ortho_cm [all|reference]]; export token directory filename; stop token.
+   ortho_cm 0 = perspective; reference = render only the textured reference. Export is a separate job so
+   rendering can run between preparation/readback. */
 static int verb_capture(const struct args *a,char *err,int ecap) {
     int i;
-    if(a->n==11 && ieq(a->v[1],"start")) {
-        struct xf t; int w=atoi(a->v[2]),h=atoi(a->v[3]); float fov=argf(a,10,90);
+    if(a->n>=11 && a->n<=13 && ieq(a->v[1],"start")) {
+        struct xf t; int w=atoi(a->v[2]),h=atoi(a->v[3]),only=0; float fov=argf(a,10,90),ortho=a->n>=12?argf(a,11,0):0;
         if(w<64 || h<64 || w>4096 || h>4096 || w*(int64_t)h>4194304 || !isfinite(fov) || fov<=1 || fov>=179) {
             snprintf(err,ecap,"capture size/FOV out of range"); return 0;
+        }
+        if(!isfinite(ortho) || ortho<0 || ortho>1e7f) { snprintf(err,ecap,"capture ortho width out of range"); return 0; }
+        if(a->n==13) {
+            if(ieq(a->v[12],"reference")) only=1;
+            else if(!ieq(a->v[12],"all")) { snprintf(err,ecap,"capture mode must be all or reference"); return 0; }
         }
         for(i=0;i<3;i++) { t.loc[i]=argf(a,4+i,0); t.rot[i]=i<2?argf(a,7+i,0):0; t.scale[i]=1; }
         /* Slot 9 is roll. Kept explicit for saved/tilted camera poses. */
@@ -209,7 +249,7 @@ static int verb_capture(const struct args *a,char *err,int ecap) {
         for(i=0;i<3;i++) if(!isfinite(t.loc[i]) || !isfinite(t.rot[i]) || fabsf(t.loc[i])>1e8f) {
             snprintf(err,ecap,"invalid capture pose"); return 0;
         }
-        return capture_begin_native(w,h,&t,fov,err,ecap);
+        return capture_begin_native(w,h,&t,fov,ortho,only,err,ecap);
     }
     if(a->n<3 || !capture_job.actor || strtoul(a->v[2],0,10)!=capture_job.token || capture_job.world!=current_world() ||
        !alive(capture_job.actor) || !alive(capture_job.target)) { snprintf(err,ecap,"capture token expired or unknown"); return 0; }
@@ -231,5 +271,5 @@ static int verb_capture(const struct args *a,char *err,int ecap) {
         }
         call(lib,fn,p); outf("capture exported token=%lu",capture_job.token); return 1;
     }
-    snprintf(err,ecap,"usage: capture start w h x y z pitch yaw roll fov | export token directory filename | stop token"); return 0;
+    snprintf(err,ecap,"usage: capture start w h x y z pitch yaw roll fov [ortho_cm [all|reference]] | export token directory filename | stop token"); return 0;
 }

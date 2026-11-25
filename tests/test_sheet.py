@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from uncrashed_mcp import agent, api, live, sheet
+from uncrashed_mcp import agent, api, live, reference, sheet
 
 _guards = []
 
@@ -69,6 +69,7 @@ class CaptureTests(unittest.TestCase):
         patch.object(sheet, 'SHEETS', root / 'shots').start()
         patch.object(live, 'read_camera', return_value={'x': 0, 'y': 0, 'z': 0, 'pitch': 0, 'yaw': 0, 'roll': 0,
                                                        'fov': 90.0, 'held': False}).start()
+        patch.object(reference, 'status', return_value={'available': True, 'loaded': False, 'hidden': False}).start()
         self.addCleanup(patch.stopall)
         self.calls = []
 

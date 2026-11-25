@@ -55,7 +55,9 @@
      save [folder|-] [title...]                        editor "SaveMap"
      mapinfo
      camera get|release|set x y z pitch yaw [hold]     native camera (holds expire after 120s)
-     capture start w h x y z pitch yaw roll fov        independent render-target capture
+     capture start w h x y z pitch yaw roll fov [ortho_cm [all|reference]]   independent render-target capture
+                                                       (ortho_cm > 0: orthographic view that wide; reference:
+                                                       only the textured reference is rendered)
      capture render|stop <token> | export <token> <directory> <filename>
      groups <file> | edit <request> <output>           snapshots and validated reversible edits
      contacts <request> <output> <gap_cm>              assembly contact facts
@@ -3157,6 +3159,7 @@ static void hexdump(const uint8_t *p, int n) {
 }
 
 #include "camera.h"
+#include "reference.h"
 #include "groups.h"
 #include "anchors.h"
 #include "zones.h"
@@ -3378,6 +3381,8 @@ static int dispatch(const char *line, int allow_batch) {
         r = verb_camera(&a, err, sizeof err);
     } else if (ieq(verb, "capture")) {
         r = verb_capture(&a, err, sizeof err);
+    } else if (ieq(verb, "reference")) {
+        r = verb_reference(&a, line, err, sizeof err);
     } else if (ieq(verb, "worldbounds")) {
         r = verb_worldbounds(&a, err, sizeof err);
     } else if (ieq(verb, "inventory")) {
@@ -3477,6 +3482,10 @@ static uint64_t job_fn(void *arg) {
         }
         if (CF.ok && !coll_restore_all()) {
             outf("%d error %s; unload refused to preserve collision originals", seq, coll_error);
+            return 0;
+        }
+        if (!ref_clear()) {
+            outf("%d error reference cleanup failed; unload refused", seq);
             return 0;
         }
         capture_stop_native();

@@ -98,6 +98,7 @@ Start the game, open the track editor, and ask your agent for something (or run 
 
 - Start on a map preset of your choice.
 - If you change `native/agent.c`, rebuild it and call `./uc unload` (`agent_unload`). The next call injects the new DLL without restarting the game.
+- Experimental: [show a textured OBJ export as a view-only reference](docs/obj-reference.md) (`./uc reference_load`), never saved.
 
 ## Tests
 

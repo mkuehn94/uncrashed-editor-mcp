@@ -1,0 +1,74 @@
+{
+ "survey": "4a3c85a05da0",
+ "reused": false,
+ "obj": "/home/user/scans/Map_A/scene.obj",
+ "region_m": {
+  "center": [
+   0.0,
+   0.0
+  ],
+  "radius": 30.0,
+  "res": 0.25,
+  "cells": "240x240"
+ },
+ "placement": null,
+ "objects_total": 5,
+ "classes": [
+  {
+   "cls": "building",
+   "count": 2,
+   "high": 2,
+   "mid": 0,
+   "low": 0,
+   "osm": 0
+  },
+  {
+   "cls": "car",
+   "count": 2,
+   "high": 2,
+   "mid": 0,
+   "low": 0,
+   "osm": 0
+  },
+  {
+   "cls": "tree",
+   "count": 1,
+   "high": 1,
+   "mid": 0,
+   "low": 0,
+   "osm": 0
+  }
+ ],
+ "class_share": {
+  "paved": 0.913,
+  "grass": 0.01,
+  "bare": 0.001,
+  "other_ground": 0.01,
+  "building": 0.049,
+  "vegetation": 0.011,
+  "low_object": 0.005
+ },
+ "timings": {
+  "index_s": 0.0,
+  "raster_s": 0.0,
+  "survey_s": 0.0,
+  "fill_s": 0.0,
+  "dtm_s": 0.01,
+  "features_s": 0.01,
+  "classify_s": 0.01,
+  "buildings_s": 0.01,
+  "trees_s": 0.01,
+  "cars_s": 0.0,
+  "total_s": 0.1
+ },
+ "skipped": [
+  "osm: disabled (--no-osm)",
+  "vision: vision stage not built yet: geometry and OSM evidence only"
+ ],
+ "next": "scan_place (map frame), then scan_view / scan_objects / scan_height",
+ "limitations": [
+  "Rule-based geometry survey of a photogrammetry mesh: classes and confidences are heuristics, not detections.",
+  "The DSM sees only the highest surface: passages under bridges, arches or canopies read as solid.",
+  "Footprints follow roof outlines (eaves), not walls; heights are above the filtered ground model."
+ ]
+}

@@ -1,6 +1,7 @@
 """Game-thread camera control and offscreen images. Never silently activates windows."""
 from __future__ import annotations
 
+import contextlib
 import json
 import math
 import os
@@ -12,7 +13,7 @@ from pathlib import Path
 
 from PIL import Image, ImageStat
 
-from . import agent
+from . import agent, reference
 from .paths import game_pid
 
 SHOTS = Path('/tmp/uncrashed-shots')
@@ -113,31 +114,44 @@ def _render_size(width: int, height: int) -> tuple[int, int]:
     return width*scale, height*scale
 
 
-def _engine_capture(path: Path, pose: dict, width: int, height: int) -> None:
+def _engine_capture(path: Path, pose: dict, width: int, height: int, ortho_cm: float = 0, only: str = '') -> None:
     with agent.session():
         rw,rh = _render_size(width,height)
+        mode = (ortho_cm, only) if ortho_cm or only else ()   # ordinary captures: the old call, the old command
         if (rw,rh) == (width,height):
-            _engine_capture_locked(path, pose, width, height)
+            _engine_capture_locked(path, pose, width, height, *mode)
             return
         raw = path.with_name(path.stem+'-render.png')
         try:
-            _engine_capture_locked(raw, pose, rw, rh)
+            _engine_capture_locked(raw, pose, rw, rh, *mode)
             with Image.open(raw) as image:
                 image.resize((width,height),Image.Resampling.LANCZOS).save(path)
         finally:
             raw.unlink(missing_ok=True)
 
 
-def _engine_capture_locked(path: Path, pose: dict, width: int, height: int) -> None:
+class CaptureModeUnsupported(LiveError):
+    """The loaded agent DLL predates `capture start ... ortho_cm mode`: nothing was rendered."""
+
+
+def _engine_capture_locked(path: Path, pose: dict, width: int, height: int, ortho_cm: float = 0,
+                           only: str = '') -> None:
     command = (f'capture start {width} {height} '
                f'{pose["x"]*100:.5f} {pose["y"]*100:.5f} {pose["z"]*100:.5f} '
                f'{pose["pitch"]:.5f} {pose["yaw"]:.5f} {pose.get("roll", 0):.5f} {pose.get("fov", 90):.5f}')
+    if ortho_cm or only:   # older agents know only the 11-word form: keep it for every ordinary capture
+        command += f' {ortho_cm:.3f}' + (f' {only}' if only else '')
     deadline = time.monotonic() + 32
     while True:
         try:
             lines = agent.run(command)
             break
         except agent.AgentError as exc:
+            if (ortho_cm or only) and ('token expired or unknown' in str(exc) or 'usage: capture' in str(exc)):
+                # an agent built before the projection / mode words reads them as a token command
+                raise CaptureModeUnsupported('the loaded agent DLL has no orthographic / reference-only capture '
+                                             '(native/camera.h): agent_unload, then the next call injects the '
+                                             'rebuilt DLL') from exc
             # A capture whose client died keeps the single native slot until the 30 s watchdog frees it.
             if 'capture busy' not in str(exc) or time.monotonic() >= deadline:
                 raise
@@ -183,12 +197,15 @@ def _window_capture(path: Path, width: int, height: int, foreground: bool) -> No
 def capture_view(x: float | None = None, y: float | None = None, z: float | None = None,
                  yaw: float | None = None, pitch: float | None = None, *,
                  backend: str = 'engine', foreground: bool = False,
-                 width: int = 800, height: int = 450) -> Path:
+                 width: int = 800, height: int = 450, include_reference: bool = False,
+                 reference_only: bool = False) -> Path:
     """Capture fresh scene, no UI/focus/camera changes by default.
 
     Engine backend uses independent render target. Explicit window backend can
     include UI, but occlusion/minimization/other desktops may yield stale pixels.
     Only foreground=True + backend='window' permits activation. No fallback.
+    A visible textured reference is hidden for the capture unless include_reference. reference_only renders
+    nothing but the loaded reference (engine backend, agent DLL with capture modes): a before picture.
     """
     supplied = (x is not None, y is not None, z is not None)
     if any(supplied) and not all(supplied):
@@ -201,6 +218,8 @@ def capture_view(x: float | None = None, y: float | None = None, z: float | None
         raise LiveError('foreground is only supported by explicit window backend')
     if backend == 'window' and any(supplied):
         raise LiveError('window backend captures current editor view; use move_camera first')
+    if reference_only and backend != 'engine':
+        raise LiveError('a reference-only capture needs the engine backend')
     if (not isinstance(width, int) or not isinstance(height, int) or
             not 64 <= width <= 4096 or not 64 <= height <= 4096 or width*height > 4194304):
         raise LiveError('capture size must be 64..4096 per axis and at most 4,194,304 pixels')
@@ -211,14 +230,84 @@ def capture_view(x: float | None = None, y: float | None = None, z: float | None
     _finite(*(pose[k] for k in ('x', 'y', 'z', 'yaw', 'pitch', 'roll', 'fov')))
     SHOTS.mkdir(parents=True, exist_ok=True)
     path = SHOTS / f'view-{uuid.uuid4().hex}.png'
-    if backend == 'engine':
-        _engine_capture(path, pose, width, height)
-    else:
-        _window_capture(path, width, height, foreground)
+    with agent.session(), reference.capture_guard(include_reference or reference_only) as shown, \
+            (reference.only_guard(shown) if reference_only else contextlib.nullcontext()):
+        if backend == 'engine':
+            _engine_capture(path, pose, width, height, *((0, 'reference') if reference_only else ()))
+        else:
+            _window_capture(path, width, height, foreground)
     path.with_suffix('.json').write_text(json.dumps({
+        **shown,
         'image': str(path), 'camera': pose, 'backend': backend, 'foreground': foreground,
         'editor_camera_moved': False, 'width': width, 'height': height,
+        **({'only': 'reference'} if reference_only else {}),
         'render_size': _render_size(width,height) if backend == 'engine' else [width,height],
         'freshness': 'new dedicated render target' if backend == 'engine' else 'unverified window pixels',
     }))
     return path
+
+
+TOPDOWN_FOV = 4.0          # perspective fallback: degrees across the box (camera about 14 x the box width up)
+
+
+def capture_topdown(box, px: int = 900, ground_z: float = 0.0, top_z: float | None = None, out_dir: Path | None = None,
+                    reference_mode: str = 'hide', projection: str = 'auto') -> dict:
+    """Straight-down image of box x0,y0,x1,y1 (map metres) on the pixel grid of scan_view (crop_frame): pixel (i, j)
+    covers x0 + i * mpp .. east and y0 + j * mpp .. south, north up. projection auto: orthographic (agent DLL with
+    capture modes), else a narrow perspective camera far above (stated, with its parallax). reference_mode: hide
+    (the textured reference is hidden for the capture), include, only (only the reference is rendered: needs the
+    ortho-capable agent DLL)."""
+    from .scan.view import crop_frame
+    x0, y0, x1, y1 = (float(v) for v in box)
+    if not (x1 > x0 and y1 > y0) or max(x1 - x0, y1 - y0) > 2000:
+        raise LiveError('box must be x0,y0,x1,y1 with x1 > x0, y1 > y0 and sides up to 2000 m')
+    if reference_mode not in ('hide', 'include', 'only'):
+        raise LiveError('reference_mode must be hide, include or only')
+    if projection not in ('auto', 'ortho', 'perspective'):
+        raise LiveError('projection must be auto, ortho or perspective')
+    if reference_mode == 'only' and projection == 'perspective':
+        raise LiveError('a reference-only capture needs the agent DLL with capture modes (projection ortho or auto)')
+    mpp, W, H = crop_frame((x0, y0, x1, y1), int(px))
+    if W < 64 or H < 64 or W > 4096 or H > 4096 or W * H > 4194304:
+        raise LiveError(f'the crop is {W} x {H} px: give px so that both sides are 64..4096 (box aspect)')
+    span_x, span_y = W * mpp, H * mpp
+    cx, cy = x0 + span_x / 2, y0 + span_y / 2
+    top = ground_z + 60.0 if top_z is None else top_z
+    pose_o = {'x': cx, 'y': cy, 'z': top + 40.0, 'pitch': -90.0, 'yaw': -90.0, 'roll': 0.0, 'fov': 90.0}
+    height = (span_x / 2) / math.tan(math.radians(TOPDOWN_FOV / 2))
+    pose_p = {'x': cx, 'y': cy, 'z': ground_z + height, 'pitch': -90.0, 'yaw': -90.0, 'roll': 0.0, 'fov': TOPDOWN_FOV}
+    folder = out_dir or SHOTS
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f'topdown-{uuid.uuid4().hex[:12]}.png'
+    used, note = None, None
+    only = 'reference' if reference_mode == 'only' else ''
+    with agent.session(), reference.capture_guard(reference_mode != 'hide') as shown:
+        if reference_mode == 'only':
+            st = reference.status()
+            if not st.get('loaded'):
+                raise LiveError('no textured reference loaded (reference_load first)')
+            if st.get('hidden'):
+                agent.run('reference show')
+                shown['reference'] = 'shown for a reference-only capture, hidden again after'
+        try:
+            if projection in ('auto', 'ortho'):
+                try:
+                    _engine_capture(path, pose_o, W, H, ortho_cm=span_x * 100, only=only)
+                    used = 'orthographic'
+                except CaptureModeUnsupported as exc:
+                    if projection == 'ortho' or only:
+                        raise
+                    note = str(exc)
+            if used is None:
+                _engine_capture(path, pose_p, W, H)
+                used = 'perspective'
+        finally:
+            if reference_mode == 'only' and shown.get('reference', '').startswith('shown for'):
+                agent.run('reference hide')
+    pose = pose_o if used == 'orthographic' else pose_p
+    parallax = None if used == 'orthographic' else round(10.0 * (math.hypot(span_x, span_y) / 2) / height, 3)
+    meta = {'image': str(path), 'box': [x0, y0, x0 + span_x, y0 + span_y], 'm_per_px': mpp, 'width': W, 'height': H,
+            'projection': used, 'camera': pose, 'reference': shown.get('reference'), 'note': note,
+            'parallax_m_per_10m_at_corner': parallax}
+    path.with_suffix('.json').write_text(json.dumps(meta))
+    return meta

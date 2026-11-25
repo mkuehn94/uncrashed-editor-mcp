@@ -49,10 +49,13 @@ def context() -> tuple[dict, Path]:
     info = agent.map_info()
     folder = info.get('folder', '')
     if not folder or sanitize_name(folder) != folder:
-        raise ValueError('save current map before using map-scoped editing metadata')
+        raise ValueError('the open map has no saved name yet: journaled edits (edit_group, undo_edit, clearing_zones, '
+                         'define_assembly, persisted collision) keep their files beside the saved map. Fix: save it '
+                         'first (./uc save_live NAME, a new name for a variant), then run the command again')
     root = directory_path(info)
     if not root.is_absolute() or root.name != folder or not (root / f'{folder}.json').is_file():
-        raise ValueError('save current map before writing metadata (map file missing)')
+        raise ValueError(f'the saved map file {folder}.json is missing (map file missing): journaled edits keep their '
+                         'files beside it. Fix: save the open map (./uc save_live NAME), then run the command again')
     return info, root
 
 

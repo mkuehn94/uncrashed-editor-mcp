@@ -21,10 +21,15 @@ TOOLS = {tool['name']: tool for tool in BASELINE['tools']}
 EMPTY = inspect.Parameter.empty
 
 # The only places where an operation's public surface may differ from the pre-port MCP tools.
-ADDED_PARAMS = {'capture_view': {'out': ''}}
-CHANGED_DOCS = {'agent_batch'}
+ADDED_PARAMS = {'capture_view': {'out': '', 'reference': False, 'reference_only': False}}
+CHANGED_DOCS = {'agent_batch', 'capture_view'}
 # Operations added after the port, appended after the baseline tools in this order (their surface is pinned below).
-ADDED_OPS = ('capture_sheet', 'scene_snapshot', 'scene_diff', 'check_opening')
+SCAN_OPS = ('scan_survey', 'scan_status', 'scan_place', 'scan_height', 'scan_profile', 'scan_at', 'scan_objects',
+            'scan_ground', 'scan_building', 'scan_facade', 'scan_free', 'scan_view', 'scan_sheet', 'scan_match',
+            'scan_plan')
+ADDED_OPS = ('capture_sheet', 'scene_snapshot', 'scene_diff', 'check_opening', 'reference_load', 'reference_status',
+             'reference_clear', 'reference_visibility', *SCAN_OPS, 'scan_compare', 'capture_topdown', 'asset_profile',
+             'scan_sources', 'scan_grid')
 
 _guards = []
 
@@ -64,6 +69,9 @@ class RegistryTests(unittest.TestCase):
                 continue
             if name in CHANGED_DOCS:
                 self.assertTrue(op.fn.__doc__.startswith(TOOLS[name]['description'].rstrip()), name)
+                if name == 'capture_view':  # the declared addition: the reference parameter
+                    self.assertIn('hidden for the capture unless reference=True', op.fn.__doc__)
+                    continue
                 # the declared addition: the failure format, with the source line a file-based caller gets
                 self.assertIn('"#<index> [L<file line>] <error> << <command>"', op.fn.__doc__)
                 self.assertIn('at most 20 of them', op.fn.__doc__)
@@ -89,7 +97,7 @@ class RegistryTests(unittest.TestCase):
         op = api.OPERATIONS['capture_sheet']
         self.assertEqual([(p.name, p.annotation, p.default) for p in op.params()],
                          [('poses', str, EMPTY), ('width', int, 480), ('height', int, 270), ('columns', int, 0),
-                          ('out', str, '')])
+                          ('out', str, ''), ('reference', bool, False), ('reference_only', bool, False)])
         self.assertEqual((op.live, op.effect, op.positional), ('yes', 'read', ('poses',)))
 
     def test_scene_snapshot_and_diff_surface(self):
@@ -101,6 +109,21 @@ class RegistryTests(unittest.TestCase):
                           ('rotation_deg', .1), ('scale', .001), ('gate_position_m', .01), ('examples', 10)])
         self.assertEqual((snap.live, snap.effect, snap.positional), ('yes', 'read', ()))
         self.assertEqual((diff.live, diff.effect, diff.positional), ('yes', 'read', ('snapshot',)))
+
+    def test_reference_surface(self):
+        load = api.OPERATIONS['reference_load']
+        self.assertEqual([(p.name, p.default) for p in load.params()],
+                         [('obj', EMPTY), ('at', None), ('map_origin', None), ('yaw', 0), ('center', None),
+                          ('radius_m', 0), ('datum_m', 'auto'), ('near_m', 160), ('far_scale', 2), ('axes', ''),
+                          ('replace', False), ('min_free_gb', 3)])
+        self.assertEqual((load.effect, load.positional), ('write', ('obj',)))
+        self.assertEqual(load.check({'loaded_chunks': 3, 'chunks': 3}), None)
+        self.assertEqual(load.check({'loaded_chunks': 1, 'chunks': 3, 'stopped': 'memory floor: x'}),
+                         'reference loaded 1/3 chunks: memory floor: x')
+        self.assertEqual([p.name for p in api.OPERATIONS['reference_status'].params()], [])
+        self.assertEqual(api.OPERATIONS['reference_status'].effect, 'read')
+        self.assertEqual([(p.name, p.default) for p in api.OPERATIONS['reference_visibility'].params()], [('hidden', True)])
+        self.assertEqual(api.OPERATIONS['reference_clear'].effect, 'write')
 
     def test_check_opening_surface(self):
         op = api.OPERATIONS['check_opening']
@@ -131,13 +154,19 @@ class RegistryTests(unittest.TestCase):
     def test_live_and_effect_classification(self):
         by_live = {kind: {n for n, op in api.OPERATIONS.items() if op.live == kind} for kind in ('no', 'mixed', 'yes')}
         self.assertEqual(by_live['no'], {'status', 'list_gates', 'search_assets', 'get_assets', 'list_maps', 'inspect_map',
-                                         'noncolliding_alternatives'})
-        self.assertEqual(by_live['mixed'], {'check_performance', 'consolidate_scenery'})
-        self.assertEqual(len(by_live['yes']), 32)
+                                         'noncolliding_alternatives', *SCAN_OPS, 'asset_profile', 'scan_sources',
+                                         'scan_grid'}
+                         - {'scan_place'})
+        # scan_place --from_reference reads the open editor; scan_compare does unless given a snapshot file
+        self.assertEqual(by_live['mixed'], {'check_performance', 'consolidate_scenery', 'scan_place', 'scan_compare'})
+        self.assertEqual(len(by_live['yes']), 37)   # 36 + capture_topdown
         self.assertEqual({n for n, op in api.OPERATIONS.items() if op.effect == 'write'},
                          {'load_live', 'save_live', 'agent_exec', 'agent_batch', 'agent_unload', 'clearing_zones',
                           'edit_group', 'undo_edit', 'undo_collision', 'define_assembly', 'set_collision',
-                          'consolidate_scenery'})
+                          'consolidate_scenery', 'reference_load', 'reference_clear', 'reference_visibility',
+                          'scan_place', 'scan_plan'})  # placement file; plan .txt / .json in the project
+        for name in ('scan_place', 'scan_compare'):  # a mixed op that is not about saved maps says what it needs
+            self.assertTrue(api.OPERATIONS[name].needs, name)
         self.assertEqual({op.effect for op in api.OPERATIONS.values()}, {'read', 'write'})
         for name in ('load_live', 'save_live', 'agent_exec', 'agent_batch'):
             self.assertTrue(api.OPERATIONS[name].caution, name)
@@ -157,7 +186,11 @@ class RegistryTests(unittest.TestCase):
             'undo_collision': ('transaction',), 'define_assembly': ('name',), 'check_assembly': ('name',),
             'set_collision': ('mode',), 'check_performance': ('name',), 'consolidate_scenery': ('name',),
             'check_route_clearance': ('source',), 'capture_sheet': ('poses',), 'scene_diff': ('snapshot',),
-            'check_opening': ('path',),
+            'check_opening': ('path',), 'reference_load': ('obj',), 'scan_survey': ('obj',),
+            'scan_height': ('points',), 'scan_profile': ('start', 'end'), 'scan_at': ('point',), 'scan_ground': ('box',),
+            'scan_building': ('building',), 'scan_facade': ('building',), 'scan_free': ('points',),
+            'scan_sheet': ('points',), 'scan_match': ('object_id',), 'scan_compare': ('snapshot',),
+            'asset_profile': ('rows',), 'scan_grid': ('box',),
         }
         aliases = {}
         for name, op in api.OPERATIONS.items():
@@ -173,7 +206,9 @@ class RegistryTests(unittest.TestCase):
                 aliases[alias] = name
         self.assertEqual(aliases, {'exec': 'agent_exec', 'batch': 'agent_batch', 'log': 'agent_log', 'unload': 'agent_unload'})
         self.assertEqual({n: op.variadic for n, op in api.OPERATIONS.items() if op.variadic},
-                         {'get_assets': 'ids', 'sample_terrain': 'points', 'check_opening': 'path'})
+                         {'get_assets': 'ids', 'sample_terrain': 'points', 'check_opening': 'path',
+                          'scan_height': 'points', 'scan_free': 'points', 'scan_sheet': 'points',
+                          'asset_profile': 'rows'})
         self.assertEqual({n: op.rest for n, op in api.OPERATIONS.items() if op.rest}, {'agent_exec': 'command'})
         self.assertEqual({n: op.stdin for n, op in api.OPERATIONS.items() if op.stdin}, {'agent_batch': 'commands'})
 
@@ -387,14 +422,37 @@ class OfflineOperationTests(unittest.TestCase):
         self.assertGreater(status['assets'], 100)
         self.assertIn('STARTGATE', json.dumps(api.list_gates()))
 
+    def test_search_ranks_whole_words_and_says_when_a_word_only_hides_inside_others(self):
+        import dataclasses
+        from uncrashed_mcp.catalog import Catalog
+        real = api._catalog()
+        base = real.assets['NewRow_52']
+        rows = {r.id: r for r in (dataclasses.replace(base, id='R1', name='Logcabin Roof', tags=()),
+                                  dataclasses.replace(base, id='R2', name='Zz Bin 01', tags=()))}
+        cat = Catalog(rows, real.library)
+        self.assertEqual([r.id for r in cat.search('bin')], ['R2', 'R1'])   # word before inner substring
+        bin_ = api.search_assets('bin')                                      # the real catalogue: no bin row
+        self.assertFalse(bin_['word_match'])
+        self.assertIn('inside a word', bin_['word_note'])
+        self.assertIn('NewRow_52', bin_['word_note'])                        # related: trash box
+        self.assertNotIn('word_match', api.search_assets('bench'))
+
     def test_search_assets_clamps_limit_before_and_after_the_collision_filter(self):
         self.assertEqual(api.search_assets(limit=0)['count'], 1)
         self.assertEqual(api.search_assets(limit=-5)['count'], 1)
-        self.assertEqual(api.search_assets(limit=500)['count'], 50)
-        self.assertEqual(api.search_assets(limit=7)['count'], 7)
+        capped = api.search_assets(limit=500)
+        self.assertEqual(capped['count'], api.SEARCH_CAP)
+        # a cut list says so: how many matched and that the limit was above the cap
+        self.assertTrue(capped['truncated'])
+        self.assertGreater(capped['total'], api.SEARCH_CAP)
+        self.assertIn('above the cap of 200', capped['note'])
+        few = api.search_assets(limit=7)
+        self.assertEqual((few['count'], few['truncated']), (7, True))
+        self.assertIn('more rows match', few['note'])
         found = api.search_assets(collision='noncolliding', limit=500)
         self.assertEqual(found['count'], len(found['assets']))
-        self.assertTrue(0 < found['count'] <= 50)
+        self.assertTrue(0 < found['count'] <= api.SEARCH_CAP)
+        self.assertNotIn('truncated', api.search_assets('NewRow_1', limit=5000))
         catalog = api._catalog()
         rows = Mock(wraps=catalog.search)
         with patch.object(catalog, 'search', rows), patch.object(api, '_catalog', return_value=catalog):
@@ -403,7 +461,7 @@ class OfflineOperationTests(unittest.TestCase):
                                                      'limit': len(catalog.assets), 'include_hidden': False,
                                                      'include_decals': True})
             api.search_assets(limit=99)
-            self.assertEqual(rows.call_args.kwargs['limit'], 50)
+            self.assertEqual(rows.call_args.kwargs['limit'], len(catalog.assets))   # counted, then cut
             self.assertEqual((rows.call_args.kwargs['category'], rows.call_args.kwargs['tag']), (None, None))
 
     def test_get_assets_reports_missing_ids(self):
@@ -465,7 +523,8 @@ class DelegationTests(unittest.TestCase):
             (agent, 'save', 'save_live', {}, ['', '']),
             (agent, 'unload', 'agent_unload', {}, []),
         ]
-        with tempfile.TemporaryDirectory() as tmp, patch.object(api, 'maps_dir', return_value=Path(tmp)):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(api, 'maps_dir', return_value=Path(tmp)), \
+                patch.object(api.reference, 'drop_for_scene_change', return_value=''):
             (Path(tmp) / 'M').mkdir()
             (Path(tmp) / 'M' / 'M.json').write_text('{}')  # load_live looks for the map before it takes the lock
             for module, target, name, kwargs, expected in cases:
@@ -1011,7 +1070,7 @@ class SoftFailureTests(unittest.TestCase):
 
     def test_only_these_operations_have_a_predicate(self):
         self.assertEqual({n for n, op in api.OPERATIONS.items() if op.check},
-                         {'load_live', 'save_live', 'agent_unload', 'set_collision', 'capture_sheet'})
+                         {'load_live', 'save_live', 'agent_unload', 'set_collision', 'capture_sheet', 'reference_load'})
 
     def test_capture_sheet(self):
         self.assertIsNone(self.check('capture_sheet', {'poses': 3, 'failed_count': 0}))

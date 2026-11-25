@@ -20,6 +20,22 @@ every command, `./uc help <command>` its parameters and examples, `./uc help ver
   then open the PNG yourself; `capture_sheet @poses.txt --out DIR/` (up to 60 `label x y z yaw pitch` lines into one
   labelled sheet.png; gates stay visible); `move_camera x y z yaw`; `save_live [NAME]`;
   `scene_snapshot --name before` then `scene_diff before` (read-only change counts and gate/start verdicts).
+- **Textured OBJ reference (view only, never saved, no collision):** `reference_load model.obj --at x,y,z
+  [--center e,s --radius_m R]` (ground datum auto), `reference_status`, `reference_visibility [--no-hidden]`,
+  `reference_clear`. Captures hide it unless `--reference`; `load_live` clears it. See docs/obj-reference.md.
+- **3D scan questions (no game):** `scan_survey scene.obj` (ground, buildings, trees, cars, OSM priors; with
+  `.venv-vision` also aerial detectors and facade windows, ~1.5 min on the GPU), `scan_place --at x,y,z --yaw Y
+  --datum_m D` (the reference_load numbers: answers in map metres), then `scan_view --center x,y --size_m 60` (PNG in
+  /dev/shm: look locally, never upload), `scan_objects --classes car --box ...` (`--sort height|area|storeys|windows`,
+  `--near x,y --nearest 3`; read `flag`), `scan_height` / `scan_profile` (x,y,z + `--agl`), `scan_grid BOX` (one
+  raster file instead of many height calls),
+  `scan_at`, `scan_ground`, `scan_building ID` (walls, storeys, window rows), `scan_facade ID` (wall image with
+  detections), `scan_free` (`--agl`: z above ground), `scan_sheet --classes car --box ...` (many crops, one PNG). Look before trusting counts.
+  To the game: `scan_match ID` (catalogue rows, scale, yaw), `scan_plan --box ... --out plans/x.txt` (`--classes
+  ground`: seam-free ground tiles; spawn +
+  `drop last` lines in map cm, building hint blocks; never run: read it, then `batch` it), `scan_compare` (live or
+  a snapshot file: matched / offset / yaw / size / missing), `asset_profile ROW` (visible size, symmetry), `capture_topdown` +
+  `scan_view --compare IMG`. Build in phases, save + compare after each: docs/scan.md "Scan-based build loop". `./uc help scan`.
 - **Agent verbs:** `spawn ROW x y z [pitch yaw roll] [sx sy sz] [group=tag]`, then `drop last` on the next
   line to rest it on what is below; `transform ACTOR x y z p y r sx sy sz` (`-` keeps a value); `destroy ACTOR`;
   `actors x y z radius`.

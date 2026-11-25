@@ -1,0 +1,90 @@
+{
+ "survey": "1e2d136bdbf7",
+ "frame": "map",
+ "object": {
+  "id": 997,
+  "cls": "car",
+  "conf": 0.95,
+  "x": 86.98,
+  "y": -215.84,
+  "ground_z": 2.98,
+  "height_m": 1.66,
+  "length_m": 4.61,
+  "width_m": 2.25,
+  "yaw_deg": 3.0,
+  "src": "mesh+vision"
+ },
+ "rows_considered": 4,
+ "candidates": [
+  {
+   "row": "NewRow_257",
+   "name": "Gt86",
+   "score": 0.905,
+   "fit_err_pct": 2.5,
+   "shape_err_pct": 2.5,
+   "raw_err_pct": 11.9,
+   "scale": [
+    1.116,
+    1.116,
+    1.116
+   ],
+   "yaw_deg": 3.0,
+   "size_m": [
+    4.74,
+    2.22,
+    1.61
+   ],
+   "roof": null,
+   "notes": null
+  },
+  {
+   "row": "NewRow_775",
+   "name": "Kangoo",
+   "score": 0.784,
+   "fit_err_pct": 6.1,
+   "shape_err_pct": 6.1,
+   "raw_err_pct": 6.9,
+   "scale": [
+    1.032,
+    1.032,
+    1.032
+   ],
+   "yaw_deg": 3.0,
+   "size_m": [
+    4.34,
+    2.27,
+    1.84
+   ],
+   "roof": null,
+   "notes": null
+  },
+  {
+   "row": "NewRow_103",
+   "name": "Camaro",
+   "score": 0.701,
+   "fit_err_pct": 8.9,
+   "shape_err_pct": 8.9,
+   "raw_err_pct": 11.0,
+   "scale": [
+    1.062,
+    1.062,
+    1.062
+   ],
+   "yaw_deg": 3.0,
+   "size_m": [
+    5.07,
+    2.18,
+    1.46
+   ],
+   "roof": null,
+   "notes": null
+  }
+ ],
+ "units": "metres",
+ "meaning": "score 0..1 (size fit after the suggested scale, proportions, roof); fit_err_pct: size error left after scale, shape_err_pct: proportion mismatch (at one uniform scale), raw_err_pct: size error at scale 1; scale is x,y,z of the row; yaw_deg: spawn yaw that lays the row on the object (trees: any); scan_plan writes the spawn line",
+ "limitations": [
+  "Matches compare box sizes (length, width, height), aspect and roof shape only; the catalogue has no colours except colour words in a few row or material names, so colour rarely decides.",
+  "A stand-in is the nearest catalogue shape, not the real object: look at it next to scan_view.",
+  "Vehicle heading is known only up to 180 degrees (front / back look alike from above)."
+ ]
+}

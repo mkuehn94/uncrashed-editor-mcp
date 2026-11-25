@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -107,21 +108,14 @@ class Catalog:
                 continue
             if asset.category == "Decals" and not include_decals and (not category or category.lower() != "decals"):
                 continue
-            hay = " ".join(
-                [
-                    asset.id,
-                    asset.name,
-                    asset.category,
-                    asset.material or "",
-                    asset.source or "",
-                    " ".join(asset.tags),
-                ]
-            ).lower()
+            hay = hay_of(asset)
             if tokens and not all(t in hay for t in tokens):
                 continue
             score = 0
             if query and asset.id.lower() == query.lower():
                 score += 100
+            if tokens and word_match(hay, tokens):   # 'bin' as a word ranks above 'cabin' / 'turbine'
+                score += 10
             if tokens and asset.name.lower().startswith(tokens[0]):
                 score += 20
             if not asset.hidden:
@@ -131,6 +125,17 @@ class Catalog:
             hits.append((score, asset))
         hits.sort(key=lambda item: (-item[0], item[1].name, item[1].id))
         return [asset for _, asset in hits[:limit]]
+
+
+def word_match(hay: str, tokens: list[str]) -> bool:
+    """Every token starts a word of the lower-case hay (after a non-letter): 'bin' matches 'bin 01' and 'trash_bin',
+    not 'cabin' or 'turbine'."""
+    return all(re.search(r'(?<![a-z])' + re.escape(t), hay) for t in tokens)
+
+
+def hay_of(asset: "Asset") -> str:
+    return " ".join([asset.id, asset.name, asset.category, asset.material or "", asset.source or "",
+                     " ".join(asset.tags)]).lower()
 
 
 def _tup3(values) -> tuple[float, float, float]:

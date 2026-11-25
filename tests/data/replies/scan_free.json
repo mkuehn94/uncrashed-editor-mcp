@@ -1,0 +1,33 @@
+{
+ "survey": "4a3c85a05da0",
+ "frame": "map",
+ "length_m": 20.0,
+ "samples": 161,
+ "radius_m": 0.5,
+ "margin_m": 0.5,
+ "clear": false,
+ "no_data_samples": 0,
+ "min_clearance_m": -2.0,
+ "min_at": {
+  "d_m": 6.6,
+  "x": 111.62,
+  "y": 190.0,
+  "z": 54.0,
+  "surface_z": 56.0
+ },
+ "first_blocked": {
+  "d_m": 6.6,
+  "x": 111.62,
+  "y": 190.0,
+  "z": 54.0,
+  "surface_z": 56.0,
+  "object": 0,
+  "cls": "building"
+ },
+ "blocked_length_m": 9.0,
+ "units": "metres",
+ "limitations": [
+  "Against the scan surface (DSM) only, not placed objects: use check_route_clearance / check_opening in the game.",
+  "The DSM is the highest surface: a path under a bridge or through an arch reads as blocked."
+ ]
+}

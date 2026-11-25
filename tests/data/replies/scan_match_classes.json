@@ -1,0 +1,194 @@
+{
+ "survey": "1e2d136bdbf7",
+ "frame": "map",
+ "selected": 51,
+ "classes": [
+  {
+   "cls": "tree",
+   "objects": 35,
+   "matched": 35,
+   "median_fit_err_pct": 5.3,
+   "median_shape_err_pct": 13.2,
+   "rows": [
+    "NewRow_168 Elm09 x14",
+    "NewRow_280 pine05 x5",
+    "NewRow_169 Elm13 x4",
+    "NewRow_281 pine Tree B x3"
+   ],
+   "reason": null
+  },
+  {
+   "cls": "car",
+   "objects": 14,
+   "matched": 14,
+   "median_fit_err_pct": 6.0,
+   "median_shape_err_pct": 6.0,
+   "rows": [
+    "NewRow_257 Gt86 x7",
+    "NewRow_103 Camaro x6",
+    "NewRow_775 Kangoo x1"
+   ],
+   "reason": null
+  },
+  {
+   "cls": "building",
+   "objects": 2,
+   "matched": 2,
+   "median_fit_err_pct": 2.1,
+   "median_shape_err_pct": 47.6,
+   "rows": [
+    "NewRow_794 Building B x1",
+    "NewRow_228 Cafe Building01 x1"
+   ],
+   "reason": null
+  }
+ ],
+ "objects": [
+  {
+   "id": 8,
+   "cls": "building",
+   "conf": 0.95,
+   "x": 118.13,
+   "y": -222.57,
+   "size_m": [
+    18.83,
+    12.88,
+    15.63
+   ],
+   "row": "NewRow_794",
+   "name": "Building B",
+   "score": 0.731,
+   "fit_err_pct": 0.0,
+   "shape_err_pct": 6.9,
+   "scale": [
+    0.633,
+    0.743,
+    0.708
+   ],
+   "yaw_deg": 273.0
+  },
+  {
+   "id": 11,
+   "cls": "building",
+   "conf": 0.9,
+   "x": 135.5,
+   "y": -216.62,
+   "size_m": [
+    16.5,
+    3.75,
+    17.19
+   ],
+   "row": "NewRow_228",
+   "name": "Cafe Building01",
+   "score": 0.095,
+   "fit_err_pct": 4.3,
+   "shape_err_pct": 88.2,
+   "scale": [
+    0.5,
+    1.573,
+    2.0
+   ],
+   "yaw_deg": 270.0
+  },
+  {
+   "id": 999,
+   "cls": "car",
+   "conf": 0.91,
+   "x": 111.18,
+   "y": -214.22,
+   "size_m": [
+    4.18,
+    2.01,
+    1.39
+   ],
+   "row": "NewRow_257",
+   "name": "Gt86",
+   "score": 0.932,
+   "fit_err_pct": 1.8,
+   "shape_err_pct": 1.8,
+   "scale": [
+    0.99,
+    0.99,
+    0.99
+   ],
+   "yaw_deg": 2.1
+  },
+  {
+   "id": 1026,
+   "cls": "car",
+   "conf": 0.95,
+   "x": 127.04,
+   "y": -167.7,
+   "size_m": [
+    3.9,
+    1.91,
+    1.33
+   ],
+   "row": "NewRow_257",
+   "name": "Gt86",
+   "score": 0.918,
+   "fit_err_pct": 2.1,
+   "shape_err_pct": 2.1,
+   "scale": [
+    0.935,
+    0.935,
+    0.935
+   ],
+   "yaw_deg": 124.3
+  },
+  {
+   "id": 1027,
+   "cls": "car",
+   "conf": 0.95,
+   "x": 117.27,
+   "y": -165.96,
+   "size_m": [
+    4.36,
+    1.97,
+    1.51
+   ],
+   "row": "NewRow_257",
+   "name": "Gt86",
+   "score": 0.913,
+   "fit_err_pct": 2.3,
+   "shape_err_pct": 2.3,
+   "scale": [
+    1.016,
+    1.016,
+    1.016
+   ],
+   "yaw_deg": 123.8
+  },
+  {
+   "id": 997,
+   "cls": "car",
+   "conf": 0.95,
+   "x": 86.98,
+   "y": -215.84,
+   "size_m": [
+    4.61,
+    2.25,
+    1.66
+   ],
+   "row": "NewRow_257",
+   "name": "Gt86",
+   "score": 0.905,
+   "fit_err_pct": 2.5,
+   "shape_err_pct": 2.5,
+   "scale": [
+    1.116,
+    1.116,
+    1.116
+   ],
+   "yaw_deg": 3.0
+  }
+ ],
+ "truncated": true,
+ "units": "metres",
+ "meaning": "per object the best row (scan_match ID shows the next ones); size_m: length, width, height of the scan object; fit_err_pct: size error left after scale; shape_err_pct: proportions",
+ "limitations": [
+  "Matches compare box sizes (length, width, height), aspect and roof shape only; the catalogue has no colours except colour words in a few row or material names, so colour rarely decides.",
+  "A stand-in is the nearest catalogue shape, not the real object: look at it next to scan_view.",
+  "Vehicle heading is known only up to 180 degrees (front / back look alike from above)."
+ ]
+}

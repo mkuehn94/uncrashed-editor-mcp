@@ -1,0 +1,30 @@
+{
+ "survey": "4a3c85a05da0",
+ "frame": "map",
+ "points": [
+  {
+   "x": 116.0,
+   "y": 185.0,
+   "ground_z": 50.0,
+   "top_z": 56.0,
+   "height_m": 6.0,
+   "under_m": 6.0,
+   "surface": "building",
+   "object": 0,
+   "cls": "building"
+  },
+  {
+   "x": 130.0,
+   "y": 170.0,
+   "ground_z": null,
+   "top_z": null,
+   "height_m": null,
+   "under_m": null,
+   "surface": "no_data",
+   "object": null,
+   "cls": null
+  }
+ ],
+ "units": "metres",
+ "meaning": "ground_z: filtered ground model; top_z: highest mesh surface; under_m: top minus lowest surface when > 1 m (overhang, bridge deck, canopy over mesh)"
+}

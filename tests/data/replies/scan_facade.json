@@ -1,0 +1,42 @@
+{
+ "survey": "f0e1b69392c2",
+ "frame": "scan",
+ "building": 0,
+ "image": "/tmp/uncrashed-scan-example/shm/scan/f0e1b69392c2/views/facade-b0-105145-952.png",
+ "facades": [
+  {
+   "side": 0,
+   "from": "roof_outline",
+   "x0": -19.62,
+   "y0": -19.62,
+   "x1": -10.38,
+   "y1": -19.62,
+   "length_m": 9.24,
+   "faces_deg": 270.0,
+   "status": "surveyed",
+   "storeys": 2,
+   "windows": 4,
+   "columns": 2,
+   "spacing_m": 3.67,
+   "sill_m": [
+    1.84,
+    3.92
+   ],
+   "head_m": [
+    2.67,
+    4.76
+   ],
+   "doors": 1,
+   "balconies": 0
+  }
+ ],
+ "sides_all": [
+  0,
+  1,
+  2,
+  3
+ ],
+ "units": "metres",
+ "meaning": "one panel per wall, seen from outside (left to right along the wall); boxes: window cyan, door yellow, garage_door orange, balcony magenta; lines: window rows with sill / head above ground; grid every metre-step along the wall and above ground",
+ "note": "image in RAM (/dev/shm) only: look at it locally, never upload or commit it"
+}
