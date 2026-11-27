@@ -317,6 +317,140 @@ The scan becomes catalogue objects in three steps; nothing reaches the game unti
 ./uc scan_view --compare /dev/shm/.../topdown-XXXX.png  # scan | build | edge overlay, deviations labelled
 ```
 
+### What works (iteration 3, the build the user called "SO MUCH better")
+
+Three earlier builds failed visually although their numbers looked fine (0 mm tile steps, good IoU). What changed:
+
+1. **Ground from street data, not from the scan raster or height model.** The ground is flat on the landscape
+   (base slab top 0.12 m, asphalt 0.14, lawn 0.13). No DTM heights, no per-cell surface classes: both turned
+   streets into a mosaic of stepped, jagged tiles. The whole site is one level; the scan is re-placed
+   (`scan_place --at x,y,z`) so its median street level matches that level.
+2. **Roads from OSM ways.** Asphalt strips along every highway way. Width per station (every 2 m) = distance from
+   the way to the nearest OSM sidewalk / cycleway / footway line or building wall on each side, running median,
+   clamped per road class; so the carriageway includes its parking lanes and is not centred on the OSM line.
+   Strips overlap 0.3 m at their ends; round caps only where three or more arms meet (a way passing through a
+   node counts as two), sized to the median measured half width. Lane markings from `lanes` / `oneway` tags only,
+   never detected from the image (glare and kerbs became random dashes). Tram ways: green bed plus rails raised
+   above the grass. Lawns from OSM grass polygons and from smoothed, simplified green polygons of the ortho,
+   filled with strips along the polygon's long edge (straight borders), never cell by cell.
+3. **Buildings on OSM outlines** (they sit exactly on the scan roofs; check by drawing them on the ortho), heights
+   and roof planes from LoD2 / the survey, windows from the facade survey, one complete prototype block checked
+   against the reference before the rest.
+4. **Trees, cars, props at their scan positions on the flat ground**; trees sized by visible crown, cars
+   colour-matched with yaw from the scan box and parking rows snapped straight.
+5. **Look before placing.** Every ground plan was drawn top-down over the scan ortho (a plain rasterised colour map of
+   the planned tiles, mind the frame margin of the `scan_view` image) and only then batched. After each phase the
+   same poses were captured as build and `--reference_only` side by side and looked at; a number is never the
+   acceptance test.
+6. **One level, one source per layer:** streets = OSM, buildings = OSM outline + LoD2, vegetation and vehicles = the
+   survey. Mixing noisy sources inside one layer (raster classes for road edges, DTM per tile) caused every failure.
+
+The generators are in the gitignored work folder of that build (`osm_ground.py`, `gen_buildings.py`,
+`gen_garden.py`, `gen_trees.py`, `gen_vehicles.py`); turning the OSM ground into a `scan_plan` option is open.
+
+### Detail passes (what worked for the courtyard and block detail)
+
+- **Check OSM outlines against the mesh before detailing.** Horizontal sections through the scan mesh at a few
+  heights (3-6 m above ground) show the real wall lines. Around courtyards the OSM outlines were 0.5-1.9 m off
+  (a courtyard wall 1.9 m inside the OSM line was exactly where the balconies belong). Correct the footprint, then
+  detail.
+- **Prototype, compare, then script.** One balcony stack, one window bay, one entrance, one hall roof: build them,
+  compare close up with `--reference_only` from 2-3 angles, refine, and only then generate the rest from measured
+  grids (facade survey rows/columns, sill/head heights, section measurements).
+- **Compose what the catalogue lacks** from Basic shapes and Concrete Wall/Floor colour variants: frames,
+  mullions, reveals, balcony slabs with drip edges and parapets, ribbed metal roofs from thin strips, gutters and
+  downpipes, roll-up doors, kerbed beds. Keep each kind in its own `detail.*` group so it can be replaced.
+- **Windows under eaves:** keep the top-floor window head clear of the eave overhang (a clearance from the
+  eave, not a fixed 0.35 m), or the windows poke through the roof.
+- **Height-model "chimneys" can be dormers.** Verify roof objects on the reference before adding chimneys.
+- **Reference captures:** straight-on `--reference_only` facade captures can come out mirrored along the wall;
+  check orientation against a known feature. Street-level reference poses often sit inside the scan mesh;
+  use first-floor height or a few metres off the wall.
+- **Replacing groups:** match group names exactly (a prefix match skipped or duplicated groups); `list_groups`
+  shows 50 by default, pass `--limit`. Compare live counts with the plan after every replace.
+- **Catalogue limits:** no glass (light wells and skylights read opaque), no pink wall, the blue rows are far too
+  saturated, red garage doors read too red. Say so instead of forcing a wrong colour.
+- **Cost:** about 25,000 objects; a top-down view of the whole map costs about 17 ms per frame (over 60 fps),
+  street and drone views about 5 ms. Keep fine detail where people fly close; use frames only further out.
+- **Z-fighting rule (one rule, checked map-wide after every change):** for every visible overlap (>= 10 x 10 cm) of
+  two same-facing parallel faces of two objects: different rows >= 3 cm apart; same row never coplanar (>= 1.5 mm
+  stagger, or delete the piece fully covered by its twin); grass blueprints >= 3 mm from any surface and >= 2 mm
+  from other grass. An overlap hidden inside a third solid does not count. Check the whole map from a
+  `scene_snapshot`, not one view: a fix that adds pieces (a fill, a split strip, caps) adds overlaps.
+  Ground is solved with fixed bands, one height per class plus 1.5 mm graph-colour staggers (DSATUR), never by
+  lifting single pieces (that makes steps): base 0.120-0.131, soil 0.161+, yard 0.1675+, grass 0.174+, asphalt
+  0.199+, markings 0.2395. Where two classes overlap that no height can separate (yard between soil and
+  asphalt), cut the geometry instead (yard triangles minus the soil, re-triangulated). Same-material
+  layers stacked on each other (paved tram on base concrete) are removed, not staggered. Coplanar 5 cm edge
+  faces of road strips in a chain: narrow every other strip by 4-8 mm.
+- **Texture scale follows piece scale:** non-triplanar rows (Asphalt NewRow_182) stretch their texture with the
+  piece, so 1 m fill cells next to 2.5 x 8 m strips read as two different asphalts. Tile every such surface in
+  pieces of about the mesh size (4 m: scale 0.65-1.4); triplanar rows (Concrete Floor01) do not care.
+- **Paint must read as what it is:** a plain red bar is not recognisable; cycle crossings need their white dashed
+  borders. Drop paint that the scan does not confirm.
+- **Street furniture: symmetry over scan noise.** Where the scan shows a group (benches round a fountain), build the
+  intended layout (centre object, benches evenly round it, facing it) instead of copying jittered positions.
+- **LoD2 leftovers must not fall below the eave:** footprint pieces no LoD2 plane covers are filled by extending
+  a nearby plane; at a corner that plane kept falling (5.3 m under a 10.7 m eave), was drawn as stepped strips and
+  cut through the facade, and the wall tops followed it, leaving an open slot into the empty building. Cap such
+  pieces flat at the lowest real eave (`cap_low_leftover`), and look at every building from close beside its
+  eaves, not only from the drone: holes and parapets show from there.
+- **Landmark houses from the user's photos:** the generic generator turns a corner house with a tower and loggias
+  into a plain box. Read the parts from the photo (tower, loggia block, porch, shutters), take positions and
+  heights from the scan DSM (tower centre, block and roof heights), give the block its own roof part, and build
+  the rest as a detail group. Arch openings: dark panels 4 cm proud with 8-step heads; balustrades proud of
+  them. `bgeom.place` rounds pivots to whole centimetres, so millimetre staggers vanish there: abut pieces
+  instead of overlapping them.
+- **Small buildings by hand:** for a garage house or a lean-to the generic walls-to-roof-profile approach leaves wall
+  tops and gable bits poking through the cover. Build them on a frame along the outline: walls and gable
+  triangles stop inside the roof slab, one slab per roof plane, doors and garage doors as proud panels. Proud
+  offsets of at least 5 cm, because placement rounds pivots to whole centimetres.
+- **Map-wide building checks after every building fix:** a fault the user finds on one house is usually in many.
+  Check every building for (1) LoD2 leftover corners falling below the eave (compare the extended plane and the
+  flat cap with the scan surface height in that corner; use whichever is closer), (2) thin wall / gable pieces
+  whose top pokes 1-80 cm out of the roof with no roof above it (skip thick boxes: dormers and chimneys), (3)
+  outline areas no roof covers. Lower poking pieces 2 cm under the roof: on steep eaves a flat wall top cannot
+  stay inside the slab on both faces, and only the outer face is visible. Look at each hit before calling it a
+  hole: a gap between two wings can be a real driveway.
+  Include thin pieces in the poke check (wall-top wedges only 3 cm tall but 12 m long showed as a white strip
+  along a whole eave) and treat a wall top within 2 cm of the roof surface as poking too: its edge flickers
+  through. Delete wall triangles under 10 cm tall; lower the rest to 4 cm under the roof.
+- **User photos from a known window:** render a panorama (8 yaws) from that position and a gridded top-down of
+  build and scan first, then match each photo by its landmarks before changing anything. Photos settle colours
+  and materials the scan cannot (coping, panel colour, door colour, roof material); keep scan geometry. Retest
+  every colour in place: beige walls read olive in shade even where the photo shows cream.
+- **Wall ends against buildings:** the Concrete Wall rows render their end faces as a dark strip. Never stop a
+  wall exactly at a building face: run it 10-15 cm into the building with its face 1-2 cm behind the building's face
+  (hidden end, no coplanar overlap), and shorten plinths or trims of the building that would sit under it.
+- **Regenerating a building orphans its add-ons:** gutters, kits and skylights built for the old roof stay at the
+  old heights. After any building regeneration, check every long thin detail piece against the new eave (a gutter
+  1.6 m under the eave read as a white bar across the facade). Skylights sized from the DSM residual came out
+  1.5-5 m wide (black squares); cap them at about 1.2 m.
+- **Layer spacing against flicker:** overlapping ground layers of different materials need at least 3 cm between
+  their top faces (base 0.12, lawn/tram 0.17, asphalt 0.20, markings 0.23 worked); 0.5-1.8 cm flickered from drone
+  distance. Same-material overlaps at one height also flickered (asphalt of two mapped carriageways covering the same road, overlapping lawn strips): remove fully covered pieces and stack the rest 1.5-3 mm apart (graph colouring), and lift objects lying on a layer together with it. Lift vehicles with the
+  road and `drop` them afterwards.
+- **Long editing sessions leak:** tens of thousands of delete/respawn operations leave dead actors in the level
+  (level_actors 137k for 25k objects; frame time 15 -> 36 ms). `console obj gc` frees part; loading the map in the
+  same game session does not. Restart the game and load the map before measuring performance.
+- **No obvious visual bugs beats exact scale.** When measured heights make parts touch (a ground-floor window head
+  under a balcony slab, a window under an eave, a door canopy against a balcony), shift or shrink the detail so a
+  clear gap (>= 0.3 m) remains, even if that departs from the scan a little. Check every new detail from the user's
+  height and angle: a deep canopy with a tall dark fascia seen edge-on reads as a stray black bar.
+- **Check surface types against the scan along their whole length:** a tram bed tagged once got grass everywhere,
+  but the scan showed grass only on part of it and paved track (and paved road crossings) elsewhere. Compare each
+  ground class top-down with `--reference only` strips along the line, not just at the centre.
+- **Crossing footways punch holes in road widths:** width stations whose rays hit a footway crossing the road
+  (crossings, refuge islands) shrink to the minimum and leave jagged concrete holes at junctions. Check every
+  junction top-down against the scan; fill the scan's carriageway polygon with asphalt a few millimetres under the
+  existing asphalt (no new same-height overlap), clear of the tram bed.
+- **Map edges count too:** the user looks at the edge of the build as well; review edge junctions as closely as
+  the centre.
+- **Wind moves tree shadows:** a multi-frame flicker test flags swaying shadows; judge z-fighting on surfaces
+  outside tree shadows or compare per-object overlaps geometrically instead.
+- **Process:** crash-safe NOTES.md / RESUME.md, save after every sub-step under the build's own map name, never
+  over another existing map (the user may save the build under a new name: check `mapinfo` first).
+
 ### Scan-based build loop
 
 1. `scan_survey scene.obj`, then `scan_place` (placement in map metres); look at `scan_view` first.
